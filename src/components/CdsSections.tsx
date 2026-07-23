@@ -102,7 +102,10 @@ export default function CdsSections({
         </div>
       </div>
 
-      <div className="cds-grid gap-10 lg:grid lg:grid-cols-[220px_minmax(0,1fr)]">
+      <div
+        data-mode={mode}
+        className="cds-grid gap-10 lg:grid lg:grid-cols-[220px_minmax(0,1fr)]"
+      >
       {/* Table of contents */}
       <nav
         aria-label="Sections"
@@ -188,7 +191,7 @@ export default function CdsSections({
                     inert={!isOpen || undefined}
                     className="border-t border-line px-5 py-5"
                   >
-                    {renderSectionBody(s.key, record, mode)}
+                    {renderSectionBody(s.key, record)}
                   </div>
                 </div>
               </div>

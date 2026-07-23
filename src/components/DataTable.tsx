@@ -24,7 +24,9 @@ export default function DataTable({ rows }: { rows: DataRow[] }) {
           return (
             <tr
               key={row.label}
-              className="border-b border-line transition-colors last:border-0 hover:bg-crimson-tint/20"
+              className={`border-b border-line transition-colors last:border-0 hover:bg-crimson-tint/20 ${
+                row.tier === "full" ? "cds-full" : ""
+              }`}
             >
               <th
                 scope="row"

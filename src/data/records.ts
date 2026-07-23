@@ -1,9 +1,11 @@
 import type {
   AdmissionFactor,
+  AidRow,
   CdsRecord,
   ClassSizeRow,
   DegreeRow,
   EthnicityRow,
+  ScoreBandRow,
   TestScoreRange,
 } from "@/lib/types";
 import { UNIVERSITIES } from "@/data/universities";
@@ -162,6 +164,113 @@ function pick(slug: string, salt: number, min: number, max: number): number {
 const clamp = (n: number, lo: number, hi: number) =>
   Math.max(lo, Math.min(hi, n));
 
+// ——— Full-CDS distribution templates (by selectivity tier) ———
+const SAT_BANDS = ["700–800", "600–699", "500–599", "400–499", "300–399", "200–299"];
+const ACT_BANDS = ["30–36", "24–29", "18–23", "12–17", "6–11", "Below 6"];
+const GPA_BANDS = ["4.0", "3.75–3.99", "3.50–3.74", "3.25–3.49", "3.00–3.24", "2.50–2.99", "Below 2.50"];
+const SAT_DIST = {
+  elite: [72, 24, 3, 1, 0, 0],
+  selective: [55, 35, 8, 2, 0, 0],
+  moderate: [35, 42, 18, 4, 1, 0],
+};
+const ACT_DIST = {
+  elite: [88, 10, 2, 0, 0, 0],
+  selective: [70, 24, 5, 1, 0, 0],
+  moderate: [45, 40, 13, 2, 0, 0],
+};
+const GPA_DIST = {
+  elite: [58, 30, 8, 3, 1, 0, 0],
+  selective: [40, 32, 17, 7, 3, 1, 0],
+  moderate: [22, 30, 25, 14, 6, 2, 1],
+};
+type SelTier = "elite" | "selective" | "moderate";
+const selTier = (acc: number): SelTier =>
+  acc < 8 ? "elite" : acc < 20 ? "selective" : "moderate";
+const bands = (labels: string[], pcts: number[]): ScoreBandRow[] =>
+  labels.map((band, i) => ({ band, percent: pcts[i] }));
+
+const SPECIAL_STUDY_FULL = [
+  "Accelerated program", "Cooperative (work-study) education", "Distance learning",
+  "Double major", "Dual enrollment", "English as a Second Language (ESL)",
+  "Exchange student program", "Honors program", "Independent study", "Internships",
+  "Liberal arts / career combination", "Part-time degree program", "Study abroad",
+  "Teacher certification", "Undergraduate research", "Weekend college",
+];
+const REQUIRED_FULL = [
+  "Arts / fine arts", "Computer literacy", "English (composition)", "Foreign languages",
+  "History", "Humanities", "Mathematics", "Philosophy", "Sciences (lab)", "Social science",
+];
+const ACTIVITIES_FULL = [
+  "Campus ministries", "Choral groups", "Concert band", "Dance", "Drama / theater",
+  "International student organization", "Jazz band", "Literary magazine", "Marching band",
+  "Model UN", "Music ensembles", "Musical theater", "Pep band", "Radio station",
+  "Student government", "Student newspaper", "Student-run film society",
+  "Symphony orchestra", "Television station", "Yearbook",
+];
+const HOUSING_FULL = [
+  "Coed residence halls", "Men’s residence halls", "Women’s residence halls",
+  "Apartments for single students", "Apartments for married students",
+  "Housing for students with disabilities", "Housing for international students",
+  "Fraternity / sorority housing", "Cooperative housing", "Living-learning communities",
+  "Theme housing", "Wellness / substance-free housing",
+];
+
+/** Fuller degrees-conferred (CIP) breakdown for the Full CDS view. */
+const CIP_FULL: Record<keyof typeof DEGREE_DISTS, DegreeRow[]> = {
+  stem: [
+    { field: "Engineering", percent: 22 },
+    { field: "Computer & information sciences", percent: 15 },
+    { field: "Biological & biomedical sciences", percent: 11 },
+    { field: "Social sciences", percent: 9 },
+    { field: "Mathematics & statistics", percent: 7 },
+    { field: "Physical sciences", percent: 7 },
+    { field: "Business, management, marketing", percent: 7 },
+    { field: "Health professions", percent: 5 },
+    { field: "Psychology", percent: 4 },
+    { field: "Multi / interdisciplinary studies", percent: 3 },
+    { field: "Visual & performing arts", percent: 3 },
+    { field: "Architecture", percent: 2 },
+    { field: "Communication & journalism", percent: 2 },
+    { field: "English language & literature", percent: 2 },
+    { field: "History", percent: 1 },
+  ],
+  arts: [
+    { field: "Visual & performing arts", percent: 15 },
+    { field: "Business, management, marketing", percent: 14 },
+    { field: "Social sciences", percent: 12 },
+    { field: "Communication & journalism", percent: 10 },
+    { field: "Liberal arts & humanities", percent: 8 },
+    { field: "Health professions", percent: 7 },
+    { field: "Psychology", percent: 6 },
+    { field: "Biological & biomedical sciences", percent: 5 },
+    { field: "English language & literature", percent: 5 },
+    { field: "Computer & information sciences", percent: 4 },
+    { field: "Foreign languages & linguistics", percent: 3 },
+    { field: "History", percent: 3 },
+    { field: "Multi / interdisciplinary studies", percent: 3 },
+    { field: "Engineering", percent: 3 },
+    { field: "Education", percent: 2 },
+  ],
+  balanced: [
+    { field: "Social sciences", percent: 18 },
+    { field: "Biological & biomedical sciences", percent: 13 },
+    { field: "Engineering", percent: 9 },
+    { field: "Computer & information sciences", percent: 9 },
+    { field: "Psychology", percent: 7 },
+    { field: "Mathematics & statistics", percent: 6 },
+    { field: "History", percent: 5 },
+    { field: "English language & literature", percent: 5 },
+    { field: "Business, management, marketing", percent: 5 },
+    { field: "Visual & performing arts", percent: 5 },
+    { field: "Multi / interdisciplinary studies", percent: 4 },
+    { field: "Physical sciences", percent: 4 },
+    { field: "Health professions", percent: 3 },
+    { field: "Communication & journalism", percent: 3 },
+    { field: "Foreign languages & linguistics", percent: 2 },
+    { field: "Area / ethnic / gender studies", percent: 2 },
+  ],
+};
+
 /** Test-score seed: `null` means test-blind (no scores reported). */
 type Sat = {
   ebrw: [number, number];
@@ -224,27 +333,32 @@ function build(s: Seed): CdsRecord {
         ? pick(s.slug, 4, 45, 72)
         : pick(s.slug, 4, 25, 45);
 
-  // E — Academic offerings.
-  const options = [
-    "Study abroad",
-    "Honors program",
-    "Independent study",
-    "Internships",
-    "Double major",
-    "Undergraduate research",
-  ];
-  if (!isPrivate || ["mit", "cornell", "princeton"].includes(s.slug)) {
-    options.push("ROTC");
-  }
-  if (isPrivate) options.push("Combined bachelor’s / master’s");
-
   // Full-CDS derived values.
-  const dist = DEGREE_DISTS[DEGREE_VARIANT[s.slug] ?? "balanced"];
+  const st = selTier(s.acc);
+  const variant = DEGREE_VARIANT[s.slug] ?? "balanced";
+  const dist = DEGREE_DISTS[variant];
   const topTenth = clamp(94 - Math.round(s.acc * 0.8), 45, 96);
   const topQuarter = clamp(topTenth + 5, 0, 99);
+  const topHalf = clamp(topQuarter + 3, 0, 100);
   const hasEd = isPrivate && s.slug !== "mit"; // MIT is early action, not ED
   const edApps = hasEd ? Math.round(s.apps * 0.08) : null;
+  const eaApps = hasEd ? null : Math.round(s.apps * 0.35);
   const stickerInState = s.tIn + s.rb + (s.fees ?? 0);
+  const pctPart = pick(s.slug, 8, 3, 12);
+  const fullTimeUg = Math.round((s.ug * (100 - pctPart)) / 100);
+  const grad = s.total - s.ug;
+  const bachelors = Math.round(s.ug * 0.24);
+  const avgDebt = isPrivate
+    ? pick(s.slug, 13, 12000, 26000)
+    : pick(s.slug, 13, 18000, 30000);
+  const numRecvNeed = s.recv === null ? null : Math.round((s.ug * s.recv) / 100);
+  const aidAwarded: AidRow[] = [
+    { type: "Need-based scholarships / grants", recipients: numRecvNeed, avgAmount: s.aid },
+    { type: "Non-need-based scholarships / grants", recipients: Math.round(s.ug * 0.12), avgAmount: s.aid === null ? null : Math.round(s.aid * 0.4) },
+    { type: "Need-based self-help (loans)", recipients: numRecvNeed === null ? null : Math.round(numRecvNeed * 0.55), avgAmount: pick(s.slug, 22, 4000, 7000) },
+    { type: "Federal Work-Study", recipients: Math.round(s.ug * 0.08), avgAmount: 2600 },
+    { type: "Federal Pell grants", recipients: Math.round((s.ug * pick(s.slug, 23, 12, 26)) / 100), avgAmount: 5000 },
+  ];
 
   return {
     slug: s.slug,
@@ -255,8 +369,8 @@ function build(s: Seed): CdsRecord {
       campusSetting: SETTINGS[s.slug] ?? null,
       religiousAffiliation: null,
       website: WEBSITES[s.slug] ? `www.${WEBSITES[s.slug]}` : null,
+      classification: "Coeducational",
       degreesOffered: "Bachelor’s, Master’s, Doctoral",
-      applicationFee: pick(s.slug, 7, 65, 90),
     },
     enrollment: {
       totalEnrollment: s.total,
@@ -265,8 +379,16 @@ function build(s: Seed): CdsRecord {
       sixYearGraduation: s.g6,
       fourYearGraduation: s.g4,
       degreeSeekingUndergrad: Math.round(s.ug * 0.97),
-      graduateEnrollment: s.total - s.ug,
-      pctPartTimeUndergrad: pick(s.slug, 8, 3, 12),
+      menUndergrad: Math.round((s.ug * (100 - women)) / 100),
+      womenUndergrad: Math.round((s.ug * women) / 100),
+      fullTimeUndergrad: fullTimeUg,
+      partTimeUndergrad: s.ug - fullTimeUg,
+      nonDegreeUndergrad: Math.round(s.ug * 0.02),
+      graduateEnrollment: grad,
+      fiveYearGraduation: clamp(s.g4 + Math.round((s.g6 - s.g4) * 0.7), s.g4, s.g6),
+      bachelorsAwarded: bachelors,
+      mastersAwarded: Math.round(grad * 0.4),
+      doctoratesAwarded: Math.round(grad * 0.08),
     },
     admissions: {
       acceptanceRate: s.acc,
@@ -283,13 +405,31 @@ function build(s: Seed): CdsRecord {
       waitlistOffered: s.wl[0],
       waitlistAccepted: s.wl[1],
       waitlistAdmitted: s.wl[2],
+      applicationFee: pick(s.slug, 7, 65, 90),
+      feeWaiverAvailable: "Yes",
+      satComposite25: s.sat ? s.sat.ebrw[0] + s.sat.math[0] : null,
+      satComposite75: s.sat ? s.sat.ebrw[1] + s.sat.math[1] : null,
+      satEbrwDist: s.sat ? bands(SAT_BANDS, SAT_DIST[st]) : [],
+      satMathDist: s.sat ? bands(SAT_BANDS, SAT_DIST[st]) : [],
+      actDist: s.sat && s.sat.act ? bands(ACT_BANDS, ACT_DIST[st]) : [],
+      gpaDist: bands(GPA_BANDS, GPA_DIST[st]),
       pctTopTenth: topTenth,
       pctTopQuarter: topQuarter,
-      pctTopHalf: clamp(topQuarter + 3, 0, 100),
+      pctTopHalf: topHalf,
+      pctBottomHalf: clamp(100 - topHalf, 0, 100),
+      pctBottomQuarter: clamp(Math.round((100 - topHalf) * 0.4), 0, 100),
       avgHsGpa: Number((3.95 - s.acc * 0.01).toFixed(2)),
-      edApplicants: edApps,
-      edAdmitted: edApps ? Math.round(edApps * clamp(s.acc * 2.4, 8, 40) / 100) : null,
       notificationDate: s.deadline.startsWith("November") ? "Late March" : "Late March / April 1",
+      replyDate: "May 1 (Candidates’ Reply Date)",
+      depositDeadline: "May 1",
+      depositAmount: isPrivate ? pick(s.slug, 24, 500, 800) : pick(s.slug, 24, 200, 500),
+      edOffered: hasEd ? "Yes" : "No",
+      edDeadline: hasEd ? "November 1" : null,
+      edApplicants: edApps,
+      edAdmitted: edApps ? Math.round((edApps * clamp(s.acc * 2.4, 8, 40)) / 100) : null,
+      eaOffered: hasEd ? "No" : "Yes",
+      eaApplicants: eaApps,
+      eaAdmitted: eaApps ? Math.round((eaApps * clamp(s.acc * 1.5, 10, 50)) / 100) : null,
     },
     transfer: {
       acceptsTransfers: "Yes",
@@ -299,21 +439,17 @@ function build(s: Seed): CdsRecord {
       acceptanceRate: tRate,
       minCollegeGpa: s.acc < 8 ? 3.5 : s.acc < 18 ? 3.3 : 3.0,
       termsAvailable: "Fall and spring",
+      applicationDeadline: "March 1",
       minCreditsToTransfer: 24,
+      maxTransferCredits: 64,
+      minCreditsAtInstitution: 60,
       requiresEssay: "Yes",
+      requiresCollegeTranscript: "Yes",
+      requiresGoodStanding: "Yes",
     },
     offerings: {
-      specialStudyOptions: options,
-      requiredCoursework: OPEN_CURRICULUM.has(s.slug)
-        ? []
-        : [
-            "English composition",
-            "Mathematics",
-            "Sciences (lab)",
-            "Humanities",
-            "Social sciences",
-            "Foreign language",
-          ],
+      specialStudyOptions: SPECIAL_STUDY_FULL,
+      requiredCoursework: OPEN_CURRICULUM.has(s.slug) ? [] : REQUIRED_FULL,
       mostPopularMajors: dist.slice(0, 3).map((d) => d.field),
     },
     studentLife: {
@@ -331,21 +467,15 @@ function build(s: Seed): CdsRecord {
         ? pick(s.slug, 16, 15, 40)
         : pick(s.slug, 16, 65, 88),
       pctDegreeSeeking: pick(s.slug, 9, 88, 99),
-      activitiesOffered: [
-        "Marching band",
-        "Choral groups",
-        "Drama / theater",
-        "Student newspaper",
-        "Radio station",
-        "Model UN",
-        "Intramural sports",
-      ],
-      housingOptions: [
-        "Residence halls",
-        "Apartments for single students",
-        "Special-interest housing",
-        "Living-learning communities",
-      ],
+      pct25OrOlder: pick(s.slug, 19, 1, 8),
+      averageAge: pick(s.slug, 20, 18, 21),
+      pctGreekLife: pick(s.slug, 21, 5, 35),
+      rotcOffered:
+        !isPrivate || ["mit", "cornell", "princeton"].includes(s.slug)
+          ? "Yes (Army, Navy, Air Force)"
+          : "At a cooperating institution",
+      activitiesOffered: ACTIVITIES_FULL,
+      housingOptions: HOUSING_FULL,
     },
     cost: {
       tuitionInState: s.tIn,
@@ -358,10 +488,19 @@ function build(s: Seed): CdsRecord {
       booksAndSupplies: pick(s.slug, 10, 1000, 1500),
       otherExpenses: pick(s.slug, 11, 2000, 3500),
       avgNetPrice: s.aid === null ? null : Math.round(stickerInState - s.aid),
-      avgDebtAtGraduation: isPrivate
-        ? pick(s.slug, 13, 12000, 26000)
-        : pick(s.slug, 13, 18000, 30000),
+      avgDebtAtGraduation: avgDebt,
+      avgFederalDebt: Math.round(avgDebt * 0.6),
       pctGraduatingWithDebt: pick(s.slug, 14, 25, 55),
+      aidAwarded,
+      numApplyingForAid: Math.round(s.ug * 0.6),
+      numWithNeed: Math.round(s.ug * 0.5),
+      numReceivedNeedAid: numRecvNeed,
+      avgAidPackage: s.aid === null ? null : Math.round(s.aid * 1.15),
+      avgNeedGrant: s.aid,
+      avgNeedLoan: pick(s.slug, 25, 4000, 7000),
+      fafsaRequired: "Yes",
+      cssProfileRequired: isPrivate ? "Yes" : "No",
+      aidPriorityDeadline: isPrivate ? "February 1" : "March 2",
     },
     faculty:
       s.ratio === null
@@ -371,12 +510,16 @@ function build(s: Seed): CdsRecord {
             fullTimeFaculty: s.fac ?? null,
             pctClassesUnder20: s.u20 ?? null,
             classSizes: s.u20 != null ? CLASS_SIZES(s.u20) : [],
+            partTimeFaculty: s.fac != null ? Math.round(s.fac * 0.4) : null,
             totalFaculty: s.fac != null ? Math.round(s.fac * 1.4) : null,
             pctTerminalDegree: pick(s.slug, 15, 88, 99),
+            pctFemaleFaculty: pick(s.slug, 17, 32, 48),
+            pctMinorityFaculty: pick(s.slug, 18, 18, 38),
           },
     degrees: {
       byField: dist,
-      totalConferred: Math.round(s.ug * 0.24),
+      totalConferred: bachelors,
+      byFieldFull: CIP_FULL[variant],
     },
   };
 }

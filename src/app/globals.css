@@ -86,6 +86,23 @@ mark {
   overflow: hidden;
 }
 
+/*
+ * Tier visibility. "Full CDS" fields are always in the DOM but hidden in the
+ * Highlights view; the `data-mode="full"` wrapper reveals them. Because the
+ * content is always present, the print stylesheet can show every field
+ * regardless of the on-screen toggle (see @media print below).
+ */
+.cds-full {
+  display: none;
+}
+[data-mode="full"] .cds-full {
+  display: revert;
+}
+/* Mirror: highlights-only content, hidden in the Full CDS view and in print. */
+[data-mode="full"] .cds-highlight {
+  display: none;
+}
+
 /* Respect users who prefer less motion. */
 @media (prefers-reduced-motion: reduce) {
   html {
@@ -127,6 +144,13 @@ mark {
     overflow: visible !important;
   }
   .section-chevron {
+    display: none !important;
+  }
+  /* The printed PDF is always the full CDS, regardless of the on-screen view. */
+  .cds-full {
+    display: revert !important;
+  }
+  .cds-highlight {
     display: none !important;
   }
   /* Sections separated by their crimson rule, not boxed. Sections may run
