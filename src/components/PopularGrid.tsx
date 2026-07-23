@@ -22,7 +22,7 @@ export default function PopularGrid({
               aria-hidden="true"
               className="font-serif text-2xl font-semibold text-crimson"
             >
-              {wordmark(uni.name)}
+              {uni.shortName ?? uni.name}
             </span>
             <span className="mt-2 text-sm font-medium leading-snug text-ink group-hover:text-crimson">
               {uni.name}
@@ -35,18 +35,4 @@ export default function PopularGrid({
       ))}
     </ul>
   );
-}
-
-/** A short wordmark: the school's initialism, e.g. "New York University" → "NYU". */
-function wordmark(name: string): string {
-  const stop = new Set(["of", "the", "and", "at", "in", "for", "a"]);
-  const initials = name
-    .replace(/,/g, " ")
-    .split(/\s+/)
-    .filter(Boolean)
-    .filter((w) => !stop.has(w.toLowerCase()))
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase();
-  return initials.slice(0, 4);
 }

@@ -17,6 +17,8 @@ export interface University {
   slug: string;
   /** Canonical display name, e.g. "New York University". */
   name: string;
+  /** Short wordmark for cards, e.g. "NYU" or "Berkeley". Falls back to `name`. */
+  shortName?: string;
   city: string;
   state: string;
   type: UniversityType;

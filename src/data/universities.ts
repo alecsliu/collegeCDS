@@ -5,12 +5,15 @@ import type { University } from "@/lib/types";
  * initialisms are added programmatically in `@/lib/search`, so only non-obvious
  * hand-curated aliases need to live here.
  *
- * `years` lists the CDS records available in `@/data/records`, most recent first.
+ * `shortName` is the wordmark shown on cards (a real short form, not an
+ * auto-generated initialism). `years` lists the CDS records available in
+ * `@/data/records`, most recent first.
  */
 export const UNIVERSITIES: University[] = [
   {
     slug: "nyu",
     name: "New York University",
+    shortName: "NYU",
     city: "New York",
     state: "NY",
     type: "Private",
@@ -20,6 +23,7 @@ export const UNIVERSITIES: University[] = [
   {
     slug: "harvard",
     name: "Harvard University",
+    shortName: "Harvard",
     city: "Cambridge",
     state: "MA",
     type: "Private",
@@ -29,6 +33,7 @@ export const UNIVERSITIES: University[] = [
   {
     slug: "yale",
     name: "Yale University",
+    shortName: "Yale",
     city: "New Haven",
     state: "CT",
     type: "Private",
@@ -38,6 +43,7 @@ export const UNIVERSITIES: University[] = [
   {
     slug: "princeton",
     name: "Princeton University",
+    shortName: "Princeton",
     city: "Princeton",
     state: "NJ",
     type: "Private",
@@ -47,6 +53,7 @@ export const UNIVERSITIES: University[] = [
   {
     slug: "columbia",
     name: "Columbia University",
+    shortName: "Columbia",
     city: "New York",
     state: "NY",
     type: "Private",
@@ -56,6 +63,7 @@ export const UNIVERSITIES: University[] = [
   {
     slug: "stanford",
     name: "Stanford University",
+    shortName: "Stanford",
     city: "Stanford",
     state: "CA",
     type: "Private",
@@ -65,6 +73,7 @@ export const UNIVERSITIES: University[] = [
   {
     slug: "mit",
     name: "Massachusetts Institute of Technology",
+    shortName: "MIT",
     city: "Cambridge",
     state: "MA",
     type: "Private",
@@ -74,6 +83,7 @@ export const UNIVERSITIES: University[] = [
   {
     slug: "penn",
     name: "University of Pennsylvania",
+    shortName: "Penn",
     city: "Philadelphia",
     state: "PA",
     type: "Private",
@@ -83,6 +93,7 @@ export const UNIVERSITIES: University[] = [
   {
     slug: "uc-berkeley",
     name: "University of California, Berkeley",
+    shortName: "Berkeley",
     city: "Berkeley",
     state: "CA",
     type: "Public",
@@ -92,6 +103,7 @@ export const UNIVERSITIES: University[] = [
   {
     slug: "ucla",
     name: "University of California, Los Angeles",
+    shortName: "UCLA",
     city: "Los Angeles",
     state: "CA",
     type: "Public",
@@ -101,6 +113,7 @@ export const UNIVERSITIES: University[] = [
   {
     slug: "michigan",
     name: "University of Michigan",
+    shortName: "Michigan",
     city: "Ann Arbor",
     state: "MI",
     type: "Public",
@@ -110,6 +123,7 @@ export const UNIVERSITIES: University[] = [
   {
     slug: "ut-austin",
     name: "University of Texas at Austin",
+    shortName: "UT Austin",
     city: "Austin",
     state: "TX",
     type: "Public",

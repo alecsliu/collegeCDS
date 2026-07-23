@@ -46,6 +46,14 @@ const fuse = new Fuse(ENTRIES, {
   ],
 });
 
+/**
+ * Drop weak fuzzy matches. Without this, short queries match across word
+ * boundaries — e.g. "NYU" catches the "n U(niversity)" in "Princeton
+ * University". Real typos score well under this (e.g. "Standford" ≈ 0.08),
+ * so they still surface.
+ */
+const MAX_FUZZY_SCORE = 0.4;
+
 export function searchUniversities(query: string, limit = 6): University[] {
   const q = query.trim();
   if (!q) return [];
@@ -56,7 +64,10 @@ export function searchUniversities(query: string, limit = 6): University[] {
     e.aliases.some((a) => a.toLowerCase() === norm),
   ).map((e) => e.university);
 
-  const fuzzy = fuse.search(q).map((r) => r.item.university);
+  const fuzzy = fuse
+    .search(q)
+    .filter((r) => (r.score ?? 1) <= MAX_FUZZY_SCORE)
+    .map((r) => r.item.university);
 
   const ordered: University[] = [];
   const seen = new Set<string>();
