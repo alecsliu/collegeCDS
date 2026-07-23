@@ -19,7 +19,10 @@ export default function DataTable({ rows }: { rows: DataRow[] }) {
         {rows.map((row) => {
           const missing = row.value === NOT_REPORTED;
           return (
-            <tr key={row.label} className="border-b border-line last:border-0">
+            <tr
+              key={row.label}
+              className="border-b border-line transition-colors last:border-0 hover:bg-crimson-tint/20"
+            >
               <th
                 scope="row"
                 className="py-2.5 pr-4 text-left align-top font-normal text-ink-2"

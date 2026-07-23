@@ -10,7 +10,9 @@ import { renderSectionBody } from "@/components/sectionContent";
  *
  * Per the PRD default, sections load collapsed with the ToC visible; clicking a
  * ToC entry expands that section and scrolls to it. The section currently in
- * view is marked with the crimson accent.
+ * view is marked with the crimson accent. Bodies stay in the DOM (animated via
+ * a grid-rows transition) so scroll-spy, print, and screen readers work; `inert`
+ * keeps collapsed bodies out of the tab order and a11y tree.
  */
 export default function CdsSections({
   record,
@@ -40,7 +42,6 @@ export default function CdsSections({
   function openAndScroll(key: SectionKey) {
     setExpanded((prev) => new Set(prev).add(key));
     setActiveKey(key);
-    // Wait a frame so the section is expanded before scrolling to it.
     requestAnimationFrame(() => {
       refs.current.get(key)?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
@@ -72,7 +73,7 @@ export default function CdsSections({
       {/* Table of contents */}
       <nav
         aria-label="Sections"
-        className="mb-8 lg:mb-0 lg:sticky lg:top-24 lg:self-start"
+        className="no-print mb-8 lg:mb-0 lg:sticky lg:top-24 lg:self-start"
       >
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-xs font-semibold uppercase tracking-wide text-ink-3">
@@ -124,7 +125,7 @@ export default function CdsSections({
               ref={(el) => {
                 if (el) refs.current.set(s.key, el);
               }}
-              className="scroll-mt-24 overflow-hidden rounded-card border border-line bg-surface"
+              className="card-print scroll-mt-24 overflow-hidden rounded-card border border-line bg-surface shadow-[var(--shadow-card)]"
             >
               <h2>
                 <button
@@ -132,7 +133,7 @@ export default function CdsSections({
                   onClick={() => toggle(s.key)}
                   aria-expanded={isOpen}
                   aria-controls={`body-${s.key}`}
-                  className="section-rule flex w-full items-center gap-4 px-5 py-4 text-left"
+                  className="section-rule flex w-full items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-crimson-tint/30"
                 >
                   <span className="min-w-0 flex-1">
                     <span className="block font-serif text-lg font-semibold text-ink">
@@ -146,11 +147,18 @@ export default function CdsSections({
                   <Chevron open={isOpen} />
                 </button>
               </h2>
-              {isOpen && (
-                <div id={`body-${s.key}`} className="border-t border-line px-5 py-5">
-                  {renderSectionBody(s.key, record)}
+
+              <div className="collapsible" data-open={isOpen}>
+                <div className="collapsible-inner">
+                  <div
+                    id={`body-${s.key}`}
+                    inert={!isOpen || undefined}
+                    className="border-t border-line px-5 py-5"
+                  >
+                    {renderSectionBody(s.key, record)}
+                  </div>
                 </div>
-              )}
+              </div>
             </section>
           );
         })}
@@ -162,7 +170,7 @@ export default function CdsSections({
 function Chevron({ open }: { open: boolean }) {
   return (
     <svg
-      className={`h-5 w-5 shrink-0 text-crimson transition-transform duration-200 ${
+      className={`section-chevron h-5 w-5 shrink-0 text-crimson transition-transform duration-200 ${
         open ? "rotate-180" : ""
       }`}
       viewBox="0 0 20 20"

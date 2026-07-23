@@ -24,6 +24,11 @@ workstreams stay cleanly decoupled.
 - **Crimson / academic design system** — one accent, editorial serif headings, a
   legible sans with tabular numerals, and explicit "Not reported" states so
   missing data is never hidden.
+- **Accessible & shareable** — keyboard-navigable search/ToC/year selector, skip
+  link, `prefers-reduced-motion` support, per-page canonical URLs, dynamic Open
+  Graph images, `sitemap.xml`/`robots.txt`, JSON-LD, and a print / save-as-PDF view.
+- **Dedicated search page** (`/search?q=`) in addition to the live dropdown, with
+  match highlighting and popular-school fallbacks (never a dead end).
 
 ## Tech
 
