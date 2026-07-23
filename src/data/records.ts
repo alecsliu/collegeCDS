@@ -2,20 +2,28 @@ import type {
   AdmissionFactor,
   CdsRecord,
   ClassSizeRow,
+  DegreeRow,
+  EthnicityRow,
   TestScoreRange,
 } from "@/lib/types";
+import { UNIVERSITIES } from "@/data/universities";
 
 /**
- * Mock CDS records — one per university/year. These stand in for the structured
- * output of the future ingest pipeline (§7 of the PRD). Numbers are illustrative
- * and roughly plausible, not authoritative.
+ * Mock CDS records — one per university/year, spanning the full Common Data Set
+ * (sections A–J). These stand in for the structured output of the future ingest
+ * pipeline (§7 of the PRD). Numbers are illustrative and roughly plausible, not
+ * authoritative.
  *
- * Coverage intentionally exercises the UI:
- *   - Several schools (nyu, harvard, stanford, uc-berkeley, michigan) have two
- *     years to drive the year selector.
- *   - `ut-austin` omits the Academics section (`ratio: null`) and several fields
- *     to drive the variable table of contents and "Not reported" states.
+ * The seed below carries the section-specific figures (admissions, enrollment,
+ * cost, faculty). The remaining sections (A general info, D transfer, E offerings,
+ * F student life, J degrees) are derived per school from its metadata and headline
+ * numbers, so the dataset stays compact while every school renders all sections.
+ *
+ * Coverage still exercises the UI: five schools have two years, and `ut-austin`
+ * keeps several "Not reported" fields (fees, aid, ACT, waitlist).
  */
+
+const META = new Map(UNIVERSITIES.map((u) => [u.slug, u]));
 
 const HOLISTIC_FACTORS: AdmissionFactor[] = [
   { factor: "Rigor of secondary school record", level: "Very important" },
@@ -39,18 +47,131 @@ const CLASS_SIZES = (under20: number): ClassSizeRow[] => [
   { range: "50+ students", percent: Math.round((100 - under20) * 0.15) },
 ];
 
+// ——— Per-school details for the derived sections ———
+const WEBSITES: Record<string, string> = {
+  nyu: "nyu.edu",
+  harvard: "harvard.edu",
+  yale: "yale.edu",
+  princeton: "princeton.edu",
+  columbia: "columbia.edu",
+  stanford: "stanford.edu",
+  mit: "mit.edu",
+  penn: "upenn.edu",
+  cornell: "cornell.edu",
+  brown: "brown.edu",
+  dartmouth: "dartmouth.edu",
+  duke: "duke.edu",
+  northwestern: "northwestern.edu",
+  usc: "usc.edu",
+  "uc-berkeley": "berkeley.edu",
+  ucla: "ucla.edu",
+  michigan: "umich.edu",
+  "ut-austin": "utexas.edu",
+};
+
+const SETTINGS: Record<string, string> = {
+  nyu: "Large city",
+  harvard: "Midsize city",
+  yale: "Midsize city",
+  princeton: "Small town",
+  columbia: "Large city",
+  stanford: "Suburban",
+  mit: "Midsize city",
+  penn: "Large city",
+  cornell: "Rural / college town",
+  brown: "Midsize city",
+  dartmouth: "Rural / college town",
+  duke: "Midsize city",
+  northwestern: "Suburban",
+  usc: "Large city",
+  "uc-berkeley": "Midsize city",
+  ucla: "Large city",
+  michigan: "College town",
+  "ut-austin": "Large city",
+};
+
+const QUARTER = new Set(["stanford", "northwestern", "ucla", "dartmouth"]);
+const OPEN_CURRICULUM = new Set(["brown"]);
+
+const ETHNICITY: EthnicityRow[] = [
+  { group: "White", percent: 36 },
+  { group: "Asian", percent: 22 },
+  { group: "Hispanic or Latino", percent: 16 },
+  { group: "Black or African American", percent: 8 },
+  { group: "Two or more races", percent: 6 },
+  { group: "Nonresident (international)", percent: 9 },
+  { group: "Unknown", percent: 3 },
+];
+
+const DEGREE_DISTS: Record<string, DegreeRow[]> = {
+  stem: [
+    { field: "Engineering", percent: 24 },
+    { field: "Computer & information sciences", percent: 16 },
+    { field: "Biological sciences", percent: 12 },
+    { field: "Social sciences", percent: 11 },
+    { field: "Physical sciences", percent: 8 },
+    { field: "Business", percent: 8 },
+    { field: "Mathematics", percent: 7 },
+    { field: "Other fields", percent: 14 },
+  ],
+  arts: [
+    { field: "Visual & performing arts", percent: 16 },
+    { field: "Business", percent: 15 },
+    { field: "Social sciences", percent: 14 },
+    { field: "Communication & journalism", percent: 11 },
+    { field: "Liberal arts & humanities", percent: 9 },
+    { field: "Health professions", percent: 8 },
+    { field: "Psychology", percent: 7 },
+    { field: "Other fields", percent: 20 },
+  ],
+  balanced: [
+    { field: "Social sciences", percent: 20 },
+    { field: "Biological sciences", percent: 14 },
+    { field: "Engineering", percent: 10 },
+    { field: "Computer & information sciences", percent: 10 },
+    { field: "Mathematics", percent: 7 },
+    { field: "Psychology", percent: 7 },
+    { field: "History", percent: 6 },
+    { field: "Other fields", percent: 26 },
+  ],
+};
+
+const DEGREE_VARIANT: Record<string, keyof typeof DEGREE_DISTS> = {
+  mit: "stem",
+  "uc-berkeley": "stem",
+  michigan: "stem",
+  "ut-austin": "stem",
+  cornell: "stem",
+  nyu: "arts",
+  usc: "arts",
+  columbia: "arts",
+};
+
+// Deterministic per-school variation so figures differ but stay stable.
+function hash(slug: string, salt: number): number {
+  let x = 2166136261 ^ salt;
+  for (let i = 0; i < slug.length; i++) {
+    x ^= slug.charCodeAt(i);
+    x = Math.imul(x, 16777619);
+  }
+  return x >>> 0;
+}
+function pick(slug: string, salt: number, min: number, max: number): number {
+  return min + (hash(slug, salt) % (max - min + 1));
+}
+const clamp = (n: number, lo: number, hi: number) =>
+  Math.max(lo, Math.min(hi, n));
+
 /** Test-score seed: `null` means test-blind (no scores reported). */
 type Sat = {
   ebrw: [number, number];
   math: [number, number];
-  /** ACT 25th–75th, or `null` when ACT isn't reported. */
   act: [number, number] | null;
 } | null;
 
 interface Seed {
   slug: string;
   year: number;
-  // Admissions
   acc: number;
   apps: number;
   adm: number;
@@ -58,15 +179,12 @@ interface Seed {
   deadline: string;
   policy: string;
   sat: Sat;
-  /** waitlist: [offered, accepted, admitted]; any may be null. */
   wl: [number | null, number | null, number | null];
-  // Enrollment
   total: number;
   ug: number;
   ret: number;
   g6: number;
   g4: number;
-  // Cost & aid
   tIn: number;
   tOut: number;
   fees: number | null;
@@ -74,13 +192,16 @@ interface Seed {
   aid: number | null;
   met: number | null;
   recv: number | null;
-  // Academics — `ratio: null` omits the whole section.
+  /** `ratio: null` omits the Faculty & class size section. */
   ratio: string | null;
   fac?: number | null;
   u20?: number | null;
 }
 
 function build(s: Seed): CdsRecord {
+  const meta = META.get(s.slug);
+  const isPrivate = meta?.type === "Private";
+
   const testScores: TestScoreRange[] = s.sat
     ? [
         { label: "SAT Evidence-Based Reading & Writing", p25: s.sat.ebrw[0], p75: s.sat.ebrw[1] },
@@ -89,9 +210,51 @@ function build(s: Seed): CdsRecord {
       ]
     : [];
 
+  // D — Transfer admission (derived from first-year figures).
+  const tRate = clamp(Math.round(s.acc * 1.2), 3, 50);
+  const tApps = Math.round(s.apps * 0.11);
+  const tAdm = Math.round((tApps * tRate) / 100);
+
+  // F — Student life (derived per type/size with stable variation).
+  const women = s.slug === "mit" ? 41 : pick(s.slug, 1, 48, 57);
+  const onCampus =
+    s.ug < 9000
+      ? pick(s.slug, 4, 72, 100)
+      : s.ug < 20000
+        ? pick(s.slug, 4, 45, 72)
+        : pick(s.slug, 4, 25, 45);
+
+  // E — Academic offerings.
+  const options = [
+    "Study abroad",
+    "Honors program",
+    "Independent study",
+    "Internships",
+    "Double major",
+    "Undergraduate research",
+  ];
+  if (!isPrivate || ["mit", "cornell", "princeton"].includes(s.slug)) {
+    options.push("ROTC");
+  }
+  if (isPrivate) options.push("Combined bachelor’s / master’s");
+
   return {
     slug: s.slug,
     year: s.year,
+    general: {
+      institutionalControl: isPrivate ? "Private, nonprofit" : "Public, state",
+      academicCalendar: QUARTER.has(s.slug) ? "Quarter" : "Semester",
+      campusSetting: SETTINGS[s.slug] ?? null,
+      religiousAffiliation: null,
+      website: WEBSITES[s.slug] ? `www.${WEBSITES[s.slug]}` : null,
+    },
+    enrollment: {
+      totalEnrollment: s.total,
+      undergradEnrollment: s.ug,
+      firstYearRetention: s.ret,
+      sixYearGraduation: s.g6,
+      fourYearGraduation: s.g4,
+    },
     admissions: {
       acceptanceRate: s.acc,
       applicants: s.apps,
@@ -105,12 +268,38 @@ function build(s: Seed): CdsRecord {
       waitlistAccepted: s.wl[1],
       waitlistAdmitted: s.wl[2],
     },
-    enrollment: {
-      totalEnrollment: s.total,
-      undergradEnrollment: s.ug,
-      firstYearRetention: s.ret,
-      sixYearGraduation: s.g6,
-      fourYearGraduation: s.g4,
+    transfer: {
+      acceptsTransfers: "Yes",
+      applicants: tApps,
+      admitted: tAdm,
+      enrolled: Math.round(tAdm * 0.75),
+      acceptanceRate: tRate,
+      minCollegeGpa: s.acc < 8 ? 3.5 : s.acc < 18 ? 3.3 : 3.0,
+    },
+    offerings: {
+      specialStudyOptions: options,
+      requiredCoursework: OPEN_CURRICULUM.has(s.slug)
+        ? []
+        : [
+            "English composition",
+            "Mathematics",
+            "Sciences (lab)",
+            "Humanities",
+            "Social sciences",
+            "Foreign language",
+          ],
+    },
+    studentLife: {
+      pctWomen: women,
+      pctMen: 100 - women,
+      pctOutOfState: isPrivate
+        ? pick(s.slug, 2, 60, 85)
+        : pick(s.slug, 2, 12, 35),
+      pctInternational: isPrivate
+        ? pick(s.slug, 3, 10, 24)
+        : pick(s.slug, 3, 8, 18),
+      pctLivingOnCampus: onCampus,
+      ethnicity: ETHNICITY,
     },
     cost: {
       tuitionInState: s.tIn,
@@ -121,7 +310,7 @@ function build(s: Seed): CdsRecord {
       pctNeedMet: s.met,
       pctReceivingAid: s.recv,
     },
-    academics:
+    faculty:
       s.ratio === null
         ? null
         : {
@@ -130,6 +319,9 @@ function build(s: Seed): CdsRecord {
             pctClassesUnder20: s.u20 ?? null,
             classSizes: s.u20 != null ? CLASS_SIZES(s.u20) : [],
           },
+    degrees: {
+      byField: DEGREE_DISTS[DEGREE_VARIANT[s.slug] ?? "balanced"],
+    },
   };
 }
 
@@ -190,8 +382,8 @@ const SEEDS: Seed[] = [
   { slug: "michigan", year: 2023, acc: 17.7, apps: 87600, adm: 15505, enr: 8500, deadline: "February 1", policy: "Test-optional", sat: { ebrw: [680, 740], math: [700, 790], act: [31, 34] }, wl: [18000, 11000, 500], total: 51225, ug: 32695, ret: 97, g6: 93, g4: 82, tIn: 16736, tOut: 55334, fees: 328, rb: 13106, aid: 21400, met: 88, recv: 42, ratio: "11:1", fac: 6900, u20: 58 },
   { slug: "michigan", year: 2022, acc: 18.0, apps: 84289, adm: 15172, enr: 8300, deadline: "February 1", policy: "Test-optional", sat: { ebrw: [670, 730], math: [690, 780], act: [31, 34] }, wl: [17000, 10400, 420], total: 50695, ug: 32282, ret: 97, g6: 92, g4: 81, tIn: 16178, tOut: 53232, fees: 318, rb: 12592, aid: 20600, met: 86, recv: 42, ratio: "11:1", fac: 6800, u20: 57 },
 
-  // ————————————————————————————— UT Austin (missing Academics + fields)
-  { slug: "ut-austin", year: 2023, acc: 29.1, apps: 66077, adm: 19249, enr: 8459, deadline: "December 1", policy: "Test-optional", sat: { ebrw: [620, 720], math: [640, 770], act: null }, wl: [null, null, null], total: 51991, ug: 40916, ret: 96, g6: 88, g4: 73, tIn: 11448, tOut: 40582, fees: null, rb: 12374, aid: null, met: null, recv: 45, ratio: null },
+  // ————————————————————————————— UT Austin (several "Not reported" fields)
+  { slug: "ut-austin", year: 2023, acc: 29.1, apps: 66077, adm: 19249, enr: 8459, deadline: "December 1", policy: "Test-optional", sat: { ebrw: [620, 720], math: [640, 770], act: null }, wl: [null, null, null], total: 51991, ug: 40916, ret: 96, g6: 88, g4: 73, tIn: 11448, tOut: 40582, fees: null, rb: 12374, aid: null, met: null, recv: 45, ratio: "18:1", fac: 3100, u20: 40 },
 ];
 
 export const RECORDS: CdsRecord[] = SEEDS.map(build);

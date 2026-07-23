@@ -38,9 +38,10 @@ export default function AboutPage() {
         How to read a university page
       </h2>
       <p className="mt-3 text-ink-2">
-        Each page groups the CDS into four sections. The official CDS reference
-        is shown alongside each plain-language label so you can trace any figure
-        back to the source form.
+        The Common Data Set is organized into standardized sections, A through J.
+        Each university page presents them all, in that order, with the official
+        CDS reference shown alongside each plain-language label so you can trace
+        any figure back to the source form.
       </p>
       <ul className="mt-5 space-y-3">
         {SECTIONS.map((s) => (

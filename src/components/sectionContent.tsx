@@ -59,12 +59,67 @@ function HeadedTable({
   );
 }
 
+/** A wrapped list of pill tags (special study options, required coursework). */
+function TagList({
+  items,
+  emptyText,
+}: {
+  items: string[];
+  emptyText?: string;
+}) {
+  if (items.length === 0) {
+    return (
+      <p className="text-sm italic text-ink-3">
+        {emptyText ?? NOT_REPORTED}
+      </p>
+    );
+  }
+  return (
+    <ul className="flex flex-wrap gap-2">
+      {items.map((item) => (
+        <li
+          key={item}
+          className="rounded-full border border-line bg-crimson-tint/40 px-3 py-1 text-sm text-ink-2"
+        >
+          {item}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 /** Builds the body JSX for a given section from a record. */
 export function renderSectionBody(
   key: SectionKey,
   record: CdsRecord,
 ): ReactNode {
   switch (key) {
+    case "general": {
+      const g = record.general;
+      if (!g) return null;
+      const rows: DataRow[] = [
+        { label: "Institutional control", value: formatText(g.institutionalControl), cdsRef: "A1" },
+        { label: "Academic calendar", value: formatText(g.academicCalendar), cdsRef: "A1" },
+        { label: "Campus setting", value: formatText(g.campusSetting), cdsRef: "A1" },
+        { label: "Religious affiliation", value: g.religiousAffiliation ?? "None", cdsRef: "A1" },
+        { label: "Website", value: formatText(g.website), cdsRef: "A0" },
+      ];
+      return <DataTable rows={rows} />;
+    }
+
+    case "enrollment": {
+      const e = record.enrollment;
+      if (!e) return null;
+      const rows: DataRow[] = [
+        { label: "Total enrollment", value: formatNumber(e.totalEnrollment), cdsRef: "B1" },
+        { label: "Undergraduate enrollment", value: formatNumber(e.undergradEnrollment), cdsRef: "B1" },
+        { label: "First-year retention rate", value: formatPercent(e.firstYearRetention), cdsRef: "B22" },
+        { label: "Six-year graduation rate", value: formatPercent(e.sixYearGraduation), cdsRef: "B11" },
+        { label: "Four-year graduation rate", value: formatPercent(e.fourYearGraduation), cdsRef: "B11" },
+      ];
+      return <DataTable rows={rows} />;
+    }
+
     case "admissions": {
       const a = record.admissions;
       if (!a) return null;
@@ -111,17 +166,67 @@ export function renderSectionBody(
       );
     }
 
-    case "enrollment": {
-      const e = record.enrollment;
-      if (!e) return null;
+    case "transfer": {
+      const t = record.transfer;
+      if (!t) return null;
       const rows: DataRow[] = [
-        { label: "Total enrollment", value: formatNumber(e.totalEnrollment), cdsRef: "B1" },
-        { label: "Undergraduate enrollment", value: formatNumber(e.undergradEnrollment), cdsRef: "B1" },
-        { label: "First-year retention rate", value: formatPercent(e.firstYearRetention), cdsRef: "B22" },
-        { label: "Six-year graduation rate", value: formatPercent(e.sixYearGraduation), cdsRef: "B11" },
-        { label: "Four-year graduation rate", value: formatPercent(e.fourYearGraduation), cdsRef: "B11" },
+        { label: "Accepts transfer students", value: formatText(t.acceptsTransfers), cdsRef: "D1" },
+        { label: "Transfer applicants", value: formatNumber(t.applicants), cdsRef: "D2" },
+        { label: "Transfer students admitted", value: formatNumber(t.admitted), cdsRef: "D2" },
+        { label: "Transfer students enrolled", value: formatNumber(t.enrolled), cdsRef: "D2" },
+        { label: "Transfer acceptance rate", value: formatPercent(t.acceptanceRate), cdsRef: "D2" },
+        {
+          label: "Minimum college GPA",
+          value: t.minCollegeGpa === null ? NOT_REPORTED : t.minCollegeGpa.toFixed(1),
+          cdsRef: "D7",
+        },
       ];
       return <DataTable rows={rows} />;
+    }
+
+    case "offerings": {
+      const o = record.offerings;
+      if (!o) return null;
+      return (
+        <>
+          <SubBlock title="Special study options">
+            <TagList items={o.specialStudyOptions} />
+          </SubBlock>
+          <SubBlock title="Required coursework for graduation">
+            <TagList
+              items={o.requiredCoursework}
+              emptyText="Open curriculum — no specific course requirements."
+            />
+          </SubBlock>
+        </>
+      );
+    }
+
+    case "studentLife": {
+      const f = record.studentLife;
+      if (!f) return null;
+      const demographics: DataRow[] = [
+        { label: "Women", value: formatPercent(f.pctWomen), cdsRef: "F1" },
+        { label: "Men", value: formatPercent(f.pctMen), cdsRef: "F1" },
+        { label: "From out of state", value: formatPercent(f.pctOutOfState), cdsRef: "F1" },
+        { label: "International (nonresident)", value: formatPercent(f.pctInternational), cdsRef: "F1" },
+        { label: "Living in college housing", value: formatPercent(f.pctLivingOnCampus), cdsRef: "F1" },
+      ];
+      return (
+        <>
+          <SubBlock title="Enrollment demographics">
+            <DataTable rows={demographics} />
+          </SubBlock>
+          {f.ethnicity.length > 0 && (
+            <SubBlock title="Race / ethnicity (degree-seeking undergraduates)">
+              <HeadedTable
+                head={["Group", "Share"]}
+                rows={f.ethnicity.map((e) => [e.group, formatPercent(e.percent)])}
+              />
+            </SubBlock>
+          )}
+        </>
+      );
     }
 
     case "cost": {
@@ -150,8 +255,8 @@ export function renderSectionBody(
       );
     }
 
-    case "academics": {
-      const ac = record.academics;
+    case "faculty": {
+      const ac = record.faculty;
       if (!ac) return null;
       const overview: DataRow[] = [
         { label: "Student-faculty ratio", value: formatText(ac.studentFacultyRatio), cdsRef: "I1" },
@@ -172,6 +277,17 @@ export function renderSectionBody(
             </SubBlock>
           )}
         </>
+      );
+    }
+
+    case "degrees": {
+      const d = record.degrees;
+      if (!d) return null;
+      return (
+        <HeadedTable
+          head={["Field of study", "Share of degrees"]}
+          rows={d.byField.map((r) => [r.field, formatPercent(r.percent)])}
+        />
       );
     }
   }

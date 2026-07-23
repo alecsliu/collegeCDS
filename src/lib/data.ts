@@ -39,6 +39,16 @@ export function getAllRecordParams(): { slug: string; year: string }[] {
  * A `null` section is absent and must not appear in the ToC.
  */
 export function getAvailableSections(record: CdsRecord): SectionKey[] {
-  const order: SectionKey[] = ["admissions", "enrollment", "cost", "academics"];
+  const order: SectionKey[] = [
+    "general",
+    "enrollment",
+    "admissions",
+    "transfer",
+    "offerings",
+    "studentLife",
+    "cost",
+    "faculty",
+    "degrees",
+  ];
   return order.filter((key) => record[key] !== null);
 }
