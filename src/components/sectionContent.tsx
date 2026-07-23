@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { CdsRecord, SectionKey } from "@/lib/types";
 import DataTable, { type DataRow } from "@/components/DataTable";
+import NotReported from "@/components/NotReported";
 import {
   NOT_REPORTED,
   formatCurrency,
@@ -49,7 +50,7 @@ function HeadedTable({
                   missing ? "text-ink-3 italic" : "font-medium text-ink"
                 }`}
               >
-                {value}
+                {missing ? <NotReported /> : value}
               </td>
             </tr>
           );
@@ -130,6 +131,8 @@ export function renderSectionBody(
         { label: "Enrolled first-year students", value: formatNumber(a.enrolledFirstYear), cdsRef: "C1" },
         { label: "Application deadline", value: formatText(a.applicationDeadline), cdsRef: "C15" },
         { label: "Testing policy", value: formatText(a.testPolicy), cdsRef: "C8" },
+        { label: "Submitting SAT scores", value: formatPercent(a.pctSubmittingSat), cdsRef: "C9" },
+        { label: "Submitting ACT scores", value: formatPercent(a.pctSubmittingAct), cdsRef: "C9" },
       ];
       return (
         <>

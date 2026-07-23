@@ -1,4 +1,5 @@
 import { NOT_REPORTED } from "@/lib/format";
+import NotReported from "@/components/NotReported";
 
 export interface DataRow {
   label: string;
@@ -37,7 +38,7 @@ export default function DataTable({ rows }: { rows: DataRow[] }) {
                   missing ? "text-ink-3 italic" : "font-medium text-ink"
                 }`}
               >
-                {row.value}
+                {missing ? <NotReported /> : row.value}
               </td>
             </tr>
           );

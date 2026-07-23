@@ -78,6 +78,10 @@ export interface AdmissionsSection {
   enrolledFirstYear: number | null;
   applicationDeadline: string | null;
   testPolicy: string | null;
+  /** Percent of enrolled first-years submitting SAT scores, per CDS C9. */
+  pctSubmittingSat: number | null;
+  /** Percent of enrolled first-years submitting ACT scores, per CDS C9. */
+  pctSubmittingAct: number | null;
   factors: AdmissionFactor[];
   testScores: TestScoreRange[];
   waitlistOffered: number | null;

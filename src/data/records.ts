@@ -262,6 +262,9 @@ function build(s: Seed): CdsRecord {
       enrolledFirstYear: s.enr,
       applicationDeadline: s.deadline,
       testPolicy: s.policy,
+      // Test-blind schools don't collect scores → not reported.
+      pctSubmittingSat: s.sat === null ? null : pick(s.slug, 5, 45, 72),
+      pctSubmittingAct: s.sat === null ? null : pick(s.slug, 6, 18, 38),
       factors: HOLISTIC_FACTORS,
       testScores,
       waitlistOffered: s.wl[0],

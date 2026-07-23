@@ -66,8 +66,12 @@ export default function UniversityView({
             <YearSelector slug={slug} years={university.years} current={year} />
           </div>
         </div>
-        <div className="mt-4">
+        <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
           <PrintButton />
+          <p className="text-xs italic text-ink-3">
+            <span className="font-semibold not-italic text-ink-2">NR</span> = not
+            reported by the institution.
+          </p>
         </div>
       </header>
 
