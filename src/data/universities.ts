@@ -1,0 +1,138 @@
+import type { University } from "@/lib/types";
+
+/**
+ * University metadata. `aliases` power smart search (nicknames + abbreviations);
+ * initialisms are added programmatically in `@/lib/search`, so only non-obvious
+ * hand-curated aliases need to live here.
+ *
+ * `years` lists the CDS records available in `@/data/records`, most recent first.
+ */
+export const UNIVERSITIES: University[] = [
+  {
+    slug: "nyu",
+    name: "New York University",
+    city: "New York",
+    state: "NY",
+    type: "Private",
+    aliases: ["NYU", "New York U"],
+    years: [2023, 2022],
+  },
+  {
+    slug: "harvard",
+    name: "Harvard University",
+    city: "Cambridge",
+    state: "MA",
+    type: "Private",
+    aliases: ["Harvard"],
+    years: [2023],
+  },
+  {
+    slug: "yale",
+    name: "Yale University",
+    city: "New Haven",
+    state: "CT",
+    type: "Private",
+    aliases: ["Yale"],
+    years: [2023],
+  },
+  {
+    slug: "princeton",
+    name: "Princeton University",
+    city: "Princeton",
+    state: "NJ",
+    type: "Private",
+    aliases: ["Princeton"],
+    years: [2023],
+  },
+  {
+    slug: "columbia",
+    name: "Columbia University",
+    city: "New York",
+    state: "NY",
+    type: "Private",
+    aliases: ["Columbia"],
+    years: [2023],
+  },
+  {
+    slug: "stanford",
+    name: "Stanford University",
+    city: "Stanford",
+    state: "CA",
+    type: "Private",
+    aliases: ["Stanford"],
+    years: [2023],
+  },
+  {
+    slug: "mit",
+    name: "Massachusetts Institute of Technology",
+    city: "Cambridge",
+    state: "MA",
+    type: "Private",
+    aliases: ["MIT"],
+    years: [2023],
+  },
+  {
+    slug: "penn",
+    name: "University of Pennsylvania",
+    city: "Philadelphia",
+    state: "PA",
+    type: "Private",
+    aliases: ["Penn", "UPenn"],
+    years: [2023],
+  },
+  {
+    slug: "uc-berkeley",
+    name: "University of California, Berkeley",
+    city: "Berkeley",
+    state: "CA",
+    type: "Public",
+    aliases: ["Berkeley", "Cal", "UC Berkeley", "UCB"],
+    years: [2023],
+  },
+  {
+    slug: "ucla",
+    name: "University of California, Los Angeles",
+    city: "Los Angeles",
+    state: "CA",
+    type: "Public",
+    aliases: ["UCLA", "UC Los Angeles"],
+    years: [2023],
+  },
+  {
+    slug: "michigan",
+    name: "University of Michigan",
+    city: "Ann Arbor",
+    state: "MI",
+    type: "Public",
+    aliases: ["Michigan", "UMich", "U of M"],
+    years: [2023],
+  },
+  {
+    slug: "ut-austin",
+    name: "University of Texas at Austin",
+    city: "Austin",
+    state: "TX",
+    type: "Public",
+    aliases: ["UT", "UT Austin", "Texas", "University of Texas"],
+    years: [2023],
+  },
+];
+
+/**
+ * Curated home-page grid — Ivies + major flagships & well-known privates.
+ * Order here is the display order.
+ */
+export const POPULAR_SLUGS: string[] = [
+  "harvard",
+  "yale",
+  "princeton",
+  "stanford",
+  "mit",
+  "columbia",
+  "penn",
+  "nyu",
+  "uc-berkeley",
+  "ucla",
+  "michigan",
+  "ut-austin",
+];

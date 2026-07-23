@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+/*
+ * Crimson / academic design system.
+ * One accent (deep maroon), layered neutrals, off-white paper background.
+ * Editorial serif for headings; legible sans with tabular numerals for data.
+ */
+@theme {
+  /* Accent — used deliberately: links, active states, primary CTA, section markers. */
+  --color-crimson: #7a1f2b;
+  --color-crimson-dark: #5e1721;
+  --color-crimson-tint: #f6ecec;
+
+  /* Neutrals */
+  --color-ink: #1c1a19; /* primary text */
+  --color-ink-2: #57514d; /* secondary text */
+  --color-ink-3: #8a827c; /* tertiary text / CDS refs */
+  --color-line: #e6e1da; /* hairline rules & borders */
+  --color-paper: #faf7f2; /* page background (never pure white) */
+  --color-surface: #ffffff; /* cards */
+
+  /* Status — reserved for meaning, never decoration */
+  --color-flag: #9a6b12;
+
+  /* Type */
+  --font-serif: var(--ff-serif), Georgia, "Times New Roman", serif;
+  --font-sans: var(--ff-sans), system-ui, -apple-system, sans-serif;
+
+  /* Radii */
+  --radius-card: 12px;
+  --radius-control: 8px;
+}
+
+html {
+  scroll-behavior: smooth;
+  /* Offset anchored sections so the sticky header doesn't cover them. */
+  scroll-padding-top: 5.5rem;
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-feature-settings: "tnum" 1; /* tabular numerals so figures align */
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Consistent focus ring for keyboard users across all interactive elements. */
+:focus-visible {
+  outline: 2px solid var(--color-crimson);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+/* The crimson marker rule that heads each CDS section. */
+.section-rule {
+  border-top: 2px solid var(--color-crimson);
+}
