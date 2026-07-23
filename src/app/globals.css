@@ -129,15 +129,20 @@ mark {
   .section-chevron {
     display: none !important;
   }
-  /* Sections separated by their crimson rule, not boxed; keep each intact. */
+  /* Sections separated by their crimson rule, not boxed. Sections may run
+     longer than a page, so let them flow across pages (a `break-inside: avoid`
+     here strands a too-tall section on the next page, leaving a near-empty
+     first page). */
   .card-print {
     border: none !important;
     box-shadow: none !important;
-    break-inside: avoid;
     margin-bottom: 18px;
   }
-  /* Don't split a data block across pages where avoidable. */
-  table,
+  /* Keep a section header with the content that follows it, and never split a
+     table row or its header across a page. */
+  .section-rule {
+    break-after: avoid;
+  }
   thead,
   tr {
     break-inside: avoid;
