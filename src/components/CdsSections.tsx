@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { SECTIONS, type CdsRecord, type SectionKey } from "@/lib/types";
+import { SECTIONS, type CdsRecord, type SectionKey, type Tier } from "@/lib/types";
 import { renderSectionBody } from "@/components/sectionContent";
 
 /**
@@ -22,6 +22,7 @@ export default function CdsSections({
   available: SectionKey[];
 }) {
   const sections = SECTIONS.filter((s) => available.includes(s.key));
+  const [mode, setMode] = useState<Tier>("highlights");
   const [expanded, setExpanded] = useState<Set<SectionKey>>(new Set());
   const [activeKey, setActiveKey] = useState<SectionKey | null>(
     sections[0]?.key ?? null,
@@ -69,7 +70,39 @@ export default function CdsSections({
   }, []);
 
   return (
-    <div className="cds-grid gap-10 lg:grid lg:grid-cols-[220px_minmax(0,1fr)]">
+    <>
+      {/* Detail-level toggle: curated highlights vs every CDS field. */}
+      <div className="no-print mb-6 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-ink-3">
+          {mode === "full"
+            ? "Showing every reported CDS field."
+            : "Showing the most-requested figures."}
+        </p>
+        <div
+          role="tablist"
+          aria-label="Detail level"
+          className="inline-flex rounded-control border border-line bg-surface p-0.5"
+        >
+          {(["highlights", "full"] as Tier[]).map((t) => (
+            <button
+              key={t}
+              role="tab"
+              type="button"
+              aria-selected={mode === t}
+              onClick={() => setMode(t)}
+              className={`rounded-[6px] px-3 py-1.5 text-sm font-medium transition-colors ${
+                mode === t
+                  ? "bg-crimson text-white"
+                  : "text-ink-2 hover:text-ink"
+              }`}
+            >
+              {t === "highlights" ? "Highlights" : "Full CDS"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="cds-grid gap-10 lg:grid lg:grid-cols-[220px_minmax(0,1fr)]">
       {/* Table of contents */}
       <nav
         aria-label="Sections"
@@ -155,7 +188,7 @@ export default function CdsSections({
                     inert={!isOpen || undefined}
                     className="border-t border-line px-5 py-5"
                   >
-                    {renderSectionBody(s.key, record)}
+                    {renderSectionBody(s.key, record, mode)}
                   </div>
                 </div>
               </div>
@@ -163,7 +196,8 @@ export default function CdsSections({
           );
         })}
       </div>
-    </div>
+      </div>
+    </>
   );
 }
 

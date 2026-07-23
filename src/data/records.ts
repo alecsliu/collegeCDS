@@ -238,6 +238,14 @@ function build(s: Seed): CdsRecord {
   }
   if (isPrivate) options.push("Combined bachelor’s / master’s");
 
+  // Full-CDS derived values.
+  const dist = DEGREE_DISTS[DEGREE_VARIANT[s.slug] ?? "balanced"];
+  const topTenth = clamp(94 - Math.round(s.acc * 0.8), 45, 96);
+  const topQuarter = clamp(topTenth + 5, 0, 99);
+  const hasEd = isPrivate && s.slug !== "mit"; // MIT is early action, not ED
+  const edApps = hasEd ? Math.round(s.apps * 0.08) : null;
+  const stickerInState = s.tIn + s.rb + (s.fees ?? 0);
+
   return {
     slug: s.slug,
     year: s.year,
@@ -247,6 +255,8 @@ function build(s: Seed): CdsRecord {
       campusSetting: SETTINGS[s.slug] ?? null,
       religiousAffiliation: null,
       website: WEBSITES[s.slug] ? `www.${WEBSITES[s.slug]}` : null,
+      degreesOffered: "Bachelor’s, Master’s, Doctoral",
+      applicationFee: pick(s.slug, 7, 65, 90),
     },
     enrollment: {
       totalEnrollment: s.total,
@@ -254,6 +264,9 @@ function build(s: Seed): CdsRecord {
       firstYearRetention: s.ret,
       sixYearGraduation: s.g6,
       fourYearGraduation: s.g4,
+      degreeSeekingUndergrad: Math.round(s.ug * 0.97),
+      graduateEnrollment: s.total - s.ug,
+      pctPartTimeUndergrad: pick(s.slug, 8, 3, 12),
     },
     admissions: {
       acceptanceRate: s.acc,
@@ -270,6 +283,13 @@ function build(s: Seed): CdsRecord {
       waitlistOffered: s.wl[0],
       waitlistAccepted: s.wl[1],
       waitlistAdmitted: s.wl[2],
+      pctTopTenth: topTenth,
+      pctTopQuarter: topQuarter,
+      pctTopHalf: clamp(topQuarter + 3, 0, 100),
+      avgHsGpa: Number((3.95 - s.acc * 0.01).toFixed(2)),
+      edApplicants: edApps,
+      edAdmitted: edApps ? Math.round(edApps * clamp(s.acc * 2.4, 8, 40) / 100) : null,
+      notificationDate: s.deadline.startsWith("November") ? "Late March" : "Late March / April 1",
     },
     transfer: {
       acceptsTransfers: "Yes",
@@ -278,6 +298,9 @@ function build(s: Seed): CdsRecord {
       enrolled: Math.round(tAdm * 0.75),
       acceptanceRate: tRate,
       minCollegeGpa: s.acc < 8 ? 3.5 : s.acc < 18 ? 3.3 : 3.0,
+      termsAvailable: "Fall and spring",
+      minCreditsToTransfer: 24,
+      requiresEssay: "Yes",
     },
     offerings: {
       specialStudyOptions: options,
@@ -291,6 +314,7 @@ function build(s: Seed): CdsRecord {
             "Social sciences",
             "Foreign language",
           ],
+      mostPopularMajors: dist.slice(0, 3).map((d) => d.field),
     },
     studentLife: {
       pctWomen: women,
@@ -303,6 +327,25 @@ function build(s: Seed): CdsRecord {
         : pick(s.slug, 3, 8, 18),
       pctLivingOnCampus: onCampus,
       ethnicity: ETHNICITY,
+      pctInState: isPrivate
+        ? pick(s.slug, 16, 15, 40)
+        : pick(s.slug, 16, 65, 88),
+      pctDegreeSeeking: pick(s.slug, 9, 88, 99),
+      activitiesOffered: [
+        "Marching band",
+        "Choral groups",
+        "Drama / theater",
+        "Student newspaper",
+        "Radio station",
+        "Model UN",
+        "Intramural sports",
+      ],
+      housingOptions: [
+        "Residence halls",
+        "Apartments for single students",
+        "Special-interest housing",
+        "Living-learning communities",
+      ],
     },
     cost: {
       tuitionInState: s.tIn,
@@ -312,6 +355,13 @@ function build(s: Seed): CdsRecord {
       avgNeedAid: s.aid,
       pctNeedMet: s.met,
       pctReceivingAid: s.recv,
+      booksAndSupplies: pick(s.slug, 10, 1000, 1500),
+      otherExpenses: pick(s.slug, 11, 2000, 3500),
+      avgNetPrice: s.aid === null ? null : Math.round(stickerInState - s.aid),
+      avgDebtAtGraduation: isPrivate
+        ? pick(s.slug, 13, 12000, 26000)
+        : pick(s.slug, 13, 18000, 30000),
+      pctGraduatingWithDebt: pick(s.slug, 14, 25, 55),
     },
     faculty:
       s.ratio === null
@@ -321,9 +371,12 @@ function build(s: Seed): CdsRecord {
             fullTimeFaculty: s.fac ?? null,
             pctClassesUnder20: s.u20 ?? null,
             classSizes: s.u20 != null ? CLASS_SIZES(s.u20) : [],
+            totalFaculty: s.fac != null ? Math.round(s.fac * 1.4) : null,
+            pctTerminalDegree: pick(s.slug, 15, 88, 99),
           },
     degrees: {
-      byField: DEGREE_DISTS[DEGREE_VARIANT[s.slug] ?? "balanced"],
+      byField: dist,
+      totalConferred: Math.round(s.ug * 0.24),
     },
   };
 }

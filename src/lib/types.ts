@@ -1,10 +1,11 @@
 /**
  * CDS data contract — the source of truth the future ingest pipeline must fulfill.
  *
- * The app now models the full Common Data Set, sections A–J. A field typed
- * `... | null` means the value may be "Not reported" for a given university/year.
- * A whole section typed `... | null` means that CDS section is absent for that
- * university/year and should NOT appear in the table of contents.
+ * The app models the full Common Data Set, sections A–J. Every section carries a
+ * curated "highlights" subset plus additional "full CDS" fields; the university
+ * page toggles between them. A field typed `... | null` may render as "NR" (not
+ * reported). A whole section typed `... | null` is absent for that university/year
+ * and is dropped from the table of contents.
  *
  * Nothing here depends on how the data is stored; the mock dataset and the eventual
  * real pipeline both produce values shaped like `CdsRecord`.
@@ -14,16 +15,13 @@ export type UniversityType = "Private" | "Public";
 
 /** Stable metadata about an institution (does not change year to year). */
 export interface University {
-  /** URL-safe identifier, e.g. "nyu". */
   slug: string;
-  /** Canonical display name, e.g. "New York University". */
   name: string;
   /** Short wordmark for cards, e.g. "NYU" or "Berkeley". Falls back to `name`. */
   shortName?: string;
   city: string;
   state: string;
   type: UniversityType;
-  /** Nicknames / abbreviations that should resolve to this school in search. */
   aliases: string[];
   /** Years with an available CDS record, most recent first. */
   years: number[];
@@ -36,18 +34,22 @@ export interface GeneralSection {
   campusSetting: string | null;
   religiousAffiliation: string | null;
   website: string | null;
+  // full CDS
+  degreesOffered: string | null;
+  applicationFee: number | null;
 }
 
 /** CDS section B — Enrollment & persistence. */
 export interface EnrollmentSection {
   totalEnrollment: number | null;
   undergradEnrollment: number | null;
-  /** First-year retention rate, percent. */
   firstYearRetention: number | null;
-  /** Six-year graduation rate, percent. */
   sixYearGraduation: number | null;
-  /** Four-year graduation rate, percent. */
   fourYearGraduation: number | null;
+  // full CDS
+  degreeSeekingUndergrad: number | null;
+  graduateEnrollment: number | null;
+  pctPartTimeUndergrad: number | null;
 }
 
 /** Weight an admission factor is given, per CDS section C7. */
@@ -71,22 +73,27 @@ export interface TestScoreRange {
 
 /** CDS section C — First-time, first-year admission. */
 export interface AdmissionsSection {
-  /** Overall acceptance rate, percent (0–100). */
   acceptanceRate: number | null;
   applicants: number | null;
   admitted: number | null;
   enrolledFirstYear: number | null;
   applicationDeadline: string | null;
   testPolicy: string | null;
-  /** Percent of enrolled first-years submitting SAT scores, per CDS C9. */
   pctSubmittingSat: number | null;
-  /** Percent of enrolled first-years submitting ACT scores, per CDS C9. */
   pctSubmittingAct: number | null;
   factors: AdmissionFactor[];
   testScores: TestScoreRange[];
   waitlistOffered: number | null;
   waitlistAccepted: number | null;
   waitlistAdmitted: number | null;
+  // full CDS
+  pctTopTenth: number | null;
+  pctTopQuarter: number | null;
+  pctTopHalf: number | null;
+  avgHsGpa: number | null;
+  edApplicants: number | null;
+  edAdmitted: number | null;
+  notificationDate: string | null;
 }
 
 /** CDS section D — Transfer admission. */
@@ -97,12 +104,18 @@ export interface TransferSection {
   enrolled: number | null;
   acceptanceRate: number | null;
   minCollegeGpa: number | null;
+  // full CDS
+  termsAvailable: string | null;
+  minCreditsToTransfer: number | null;
+  requiresEssay: string | null;
 }
 
 /** CDS section E — Academic offerings & policies. */
 export interface OfferingsSection {
   specialStudyOptions: string[];
   requiredCoursework: string[];
+  // full CDS
+  mostPopularMajors: string[];
 }
 
 /** One row of a student demographic breakdown, per CDS section F1. */
@@ -119,6 +132,11 @@ export interface StudentLifeSection {
   pctInternational: number | null;
   pctLivingOnCampus: number | null;
   ethnicity: EthnicityRow[];
+  // full CDS
+  pctInState: number | null;
+  pctDegreeSeeking: number | null;
+  activitiesOffered: string[];
+  housingOptions: string[];
 }
 
 /** CDS sections G & H — Annual expenses & financial aid. */
@@ -127,18 +145,20 @@ export interface CostSection {
   tuitionOutState: number | null;
   requiredFees: number | null;
   roomAndBoard: number | null;
-  /** Average need-based aid award, dollars. */
   avgNeedAid: number | null;
-  /** Percent of need met, on average. */
   pctNeedMet: number | null;
-  /** Percent of undergraduates receiving any need-based aid. */
   pctReceivingAid: number | null;
+  // full CDS
+  booksAndSupplies: number | null;
+  otherExpenses: number | null;
+  avgNetPrice: number | null;
+  avgDebtAtGraduation: number | null;
+  pctGraduatingWithDebt: number | null;
 }
 
 /** One row of the class-size distribution, per CDS section I3. */
 export interface ClassSizeRow {
   range: string;
-  /** Percent of undergraduate class sections in this size band. */
   percent: number | null;
 }
 
@@ -146,9 +166,11 @@ export interface ClassSizeRow {
 export interface FacultySection {
   studentFacultyRatio: string | null;
   fullTimeFaculty: number | null;
-  /** Percent of class sections with fewer than 20 students. */
   pctClassesUnder20: number | null;
   classSizes: ClassSizeRow[];
+  // full CDS
+  totalFaculty: number | null;
+  pctTerminalDegree: number | null;
 }
 
 /** One row of degrees conferred by field, per CDS section J. */
@@ -160,12 +182,13 @@ export interface DegreeRow {
 /** CDS section J — Degrees conferred by disciplinary area. */
 export interface DegreesSection {
   byField: DegreeRow[];
+  // full CDS
+  totalConferred: number | null;
 }
 
 /**
  * A full CDS record for one university in one year, spanning sections A–J.
- * Any section may be `null` when that section is unavailable — this drives a
- * variable table of contents.
+ * Any section may be `null` when that section is unavailable.
  */
 export interface CdsRecord {
   slug: string;
@@ -181,6 +204,9 @@ export interface CdsRecord {
   degrees: DegreesSection | null;
 }
 
+/** Detail level the university page is showing. */
+export type Tier = "highlights" | "full";
+
 /** The CDS section groups this app renders, in fixed display order (A → J). */
 export type SectionKey =
   | "general"
@@ -195,11 +221,8 @@ export type SectionKey =
 
 export interface SectionMeta {
   key: SectionKey;
-  /** Plain-language, primary label. */
   title: string;
-  /** Subordinate official CDS reference, e.g. "Section C". */
   cdsRef: string;
-  /** One-line description for the ToC / section header. */
   blurb: string;
 }
 

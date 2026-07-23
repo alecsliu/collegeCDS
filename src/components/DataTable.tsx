@@ -7,6 +7,8 @@ export interface DataRow {
   value: string;
   /** Optional subordinate CDS reference, e.g. "C1". */
   cdsRef?: string;
+  /** "full" rows appear only in the Full CDS view; default is a highlight. */
+  tier?: "full";
 }
 
 /**
