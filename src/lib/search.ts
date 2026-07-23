@@ -49,10 +49,10 @@ const fuse = new Fuse(ENTRIES, {
 /**
  * Drop weak fuzzy matches. Without this, short queries match across word
  * boundaries — e.g. "NYU" catches the "n U(niversity)" in "Princeton
- * University". Real typos score well under this (e.g. "Standford" ≈ 0.08),
- * so they still surface.
+ * University". Real typos score well under this (e.g. "Standford" ≈ 0.08,
+ * "Harvrd" ≈ 0.13), so they still surface.
  */
-const MAX_FUZZY_SCORE = 0.4;
+const MAX_FUZZY_SCORE = 0.2;
 
 export function searchUniversities(query: string, limit = 6): University[] {
   const q = query.trim();
