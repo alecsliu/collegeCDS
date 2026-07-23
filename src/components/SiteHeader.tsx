@@ -11,7 +11,7 @@ export default function SiteHeader() {
   const showSearch = pathname !== "/";
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-paper/85 backdrop-blur">
+    <header className="no-print sticky top-0 z-40 border-b border-line bg-paper/85 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-6 px-5">
         <Link href="/" className="flex shrink-0 items-baseline gap-2">
           <span className="font-serif text-xl font-semibold tracking-tight text-crimson">

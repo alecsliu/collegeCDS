@@ -69,7 +69,7 @@ export default function CdsSections({
   }, []);
 
   return (
-    <div className="gap-10 lg:grid lg:grid-cols-[220px_minmax(0,1fr)]">
+    <div className="cds-grid gap-10 lg:grid lg:grid-cols-[220px_minmax(0,1fr)]">
       {/* Table of contents */}
       <nav
         aria-label="Sections"
