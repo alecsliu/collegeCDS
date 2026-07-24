@@ -281,32 +281,26 @@ export function renderSectionBody(
         { label: "In bottom quarter", value: formatPercent(a.pctBottomQuarter), cdsRef: "C11" },
         { label: "Average high-school GPA", value: formatGpa(a.avgHsGpa), cdsRef: "C12" },
       ];
+      const gender = (grp: string) => a.byGender.find((r) => r.group === grp);
+      const admissionsCalc: { label: string; value: string; formula: string }[] = [];
+      const pushCalc = (label: string, num: number | null | undefined, den: number | null | undefined, formula: string) => {
+        if (num != null && den) admissionsCalc.push({ label, value: formatPercent(round1((num / den) * 100)), formula });
+      };
+      pushCalc("Acceptance rate", a.admitted, a.applicants, "admitted ÷ applied");
+      pushCalc("Yield", a.enrolledFirstYear, a.admitted, "enrolled ÷ admitted");
+      pushCalc("Admit rate (women)", gender("Women")?.admitted, gender("Women")?.applied, "women admitted ÷ women applied");
+      pushCalc("Admit rate (men)", gender("Men")?.admitted, gender("Men")?.applied, "men admitted ÷ men applied");
+      pushCalc("Admits via early decision", a.edAdmitted, a.admitted, "ED admits ÷ all admits");
+      pushCalc("Waitlist admit rate", a.waitlistAdmitted, a.waitlistAccepted, "WL admitted ÷ accepted a place");
       return (
         <>
           <SubBlock title="Overview">
             <DataTable rows={overview} />
           </SubBlock>
 
-          {a.applicants != null && a.admitted != null && (
+          {admissionsCalc.length > 0 && (
             <SubBlock title="Calculated metrics">
-              <CalculatedMetrics
-                items={[
-                  {
-                    label: "Acceptance rate",
-                    value: formatPercent(round1((a.admitted / a.applicants) * 100)),
-                    formula: "admitted ÷ applied",
-                  },
-                  ...(a.enrolledFirstYear != null && a.admitted
-                    ? [
-                        {
-                          label: "Yield",
-                          value: formatPercent(round1((a.enrolledFirstYear / a.admitted) * 100)),
-                          formula: "enrolled ÷ admitted",
-                        },
-                      ]
-                    : []),
-                ]}
-              />
+              <CalculatedMetrics items={admissionsCalc} />
             </SubBlock>
           )}
 
@@ -460,7 +454,6 @@ export function renderSectionBody(
         { label: "Transfer applicants", value: formatNumber(t.applicants), cdsRef: "D2" },
         { label: "Transfer students admitted", value: formatNumber(t.admitted), cdsRef: "D2" },
         { label: "Transfer students enrolled", value: formatNumber(t.enrolled), cdsRef: "D2" },
-        { label: "Transfer acceptance rate", value: formatPercent(t.acceptanceRate), cdsRef: "D2" },
         { label: "Minimum college GPA", value: formatGpa1(t.minCollegeGpa), cdsRef: "D7" },
         { label: "Minimum credits to transfer", value: formatNumber(t.minCreditsToTransfer), cdsRef: "D5", tier: "full" },
         { label: "Maximum credits transferable", value: formatNumber(t.maxTransferCredits), cdsRef: "D9", tier: "full" },
@@ -471,9 +464,19 @@ export function renderSectionBody(
         { label: "Minimum high-school GPA", value: t.minHsGpa === null ? NOT_REPORTED : t.minHsGpa.toFixed(1), tier: "full" },
         { label: "Accepts military / veteran credit", value: formatText(t.acceptsMilitaryCredit), tier: "full" },
       ];
+      const transferCalc: { label: string; value: string; formula: string }[] = [];
+      if (t.admitted != null && t.applicants)
+        transferCalc.push({ label: "Transfer acceptance rate", value: formatPercent(round1((t.admitted / t.applicants) * 100)), formula: "admitted ÷ applied" });
+      if (t.enrolled != null && t.admitted)
+        transferCalc.push({ label: "Transfer yield", value: formatPercent(round1((t.enrolled / t.admitted) * 100)), formula: "enrolled ÷ admitted" });
       return (
         <>
           <DataTable rows={rows} />
+          {transferCalc.length > 0 && (
+            <SubBlock title="Calculated metrics">
+              <CalculatedMetrics items={transferCalc} />
+            </SubBlock>
+          )}
           <SubBlock title="Transfer applicants by gender" full>
             <GridTable
               firstCol="Gender"
@@ -654,23 +657,41 @@ export function renderSectionBody(
     case "faculty": {
       const ac = record.faculty;
       if (!ac) return null;
-      const overview: DataRow[] = [
-        { label: "Student-faculty ratio", value: formatText(ac.studentFacultyRatio), cdsRef: "I1" },
-        { label: "Full-time faculty", value: formatNumber(ac.fullTimeFaculty), cdsRef: "I1" },
-        { label: "Part-time faculty", value: formatNumber(ac.partTimeFaculty), cdsRef: "I1", tier: "full" },
-        { label: "Total faculty", value: formatNumber(ac.totalFaculty), cdsRef: "I1", tier: "full" },
-        { label: "Faculty with a terminal degree", value: formatPercent(ac.pctTerminalDegree), cdsRef: "I1", tier: "full" },
-        { label: "Female faculty", value: formatPercent(ac.pctFemaleFaculty), cdsRef: "I1", tier: "full" },
-        { label: "Minority faculty", value: formatPercent(ac.pctMinorityFaculty), cdsRef: "I1", tier: "full" },
-        { label: "Class sections with fewer than 20 students", value: formatPercent(ac.pctClassesUnder20), cdsRef: "I3" },
-      ];
+      // Everything derived from the reported I1/I3 counts.
+      const totalFac = ac.facultyCounts[0]?.total ?? null;
+      const facFind = (prefix: string) =>
+        ac.facultyCounts.find((r) => r.label.startsWith(prefix))?.total ?? null;
+      const facPct = (n: number | null) =>
+        n !== null && totalFac ? formatPercent(round1((n / totalFac) * 100)) : NOT_REPORTED;
+      const totalSec = ac.classSizes.reduce((sum, r) => sum + (r.count ?? 0), 0);
+      const under20 = ac.classSizes.slice(0, 2).reduce((sum, r) => sum + (r.count ?? 0), 0);
+      const large = ac.classSizes.find((r) => r.range.startsWith("50"))?.count ?? 0;
+      const secPct = (n: number) =>
+        totalSec ? formatPercent(round1((n / totalSec) * 100)) : NOT_REPORTED;
       return (
         <>
           <SubBlock title="Overview">
-            <DataTable rows={overview} />
+            <DataTable
+              rows={[
+                { label: "Student-faculty ratio", value: formatText(ac.studentFacultyRatio) },
+              ]}
+            />
           </SubBlock>
+
+          <SubBlock title="Calculated metrics">
+            <CalculatedMetrics
+              items={[
+                { label: "Faculty who are women", value: facPct(facFind("Women")), formula: "women ÷ total faculty" },
+                { label: "Faculty who are minority", value: facPct(facFind("Members")), formula: "minority ÷ total faculty" },
+                { label: "Faculty with a terminal degree", value: facPct(facFind("With doctorate")), formula: "terminal-degree ÷ total faculty" },
+                { label: "Sections under 20 students", value: secPct(under20), formula: "sections <20 ÷ total sections" },
+                { label: "Sections of 50+ students", value: secPct(large), formula: "sections 50+ ÷ total sections" },
+              ]}
+            />
+          </SubBlock>
+
           {ac.facultyCounts.length > 0 && (
-            <SubBlock title="Instructional faculty" full>
+            <SubBlock title="Instructional faculty (counts)" full>
               <GridTable
                 firstCol=""
                 columns={["Full-time", "Part-time", "Total"]}
@@ -687,18 +708,18 @@ export function renderSectionBody(
             </SubBlock>
           )}
           {ac.classSizes.length > 0 && (
-            <SubBlock title="Class-size distribution (sections)">
+            <SubBlock title="Class sections by size (count)" full>
               <HeadedTable
-                head={["Class size", "Share of sections"]}
-                rows={ac.classSizes.map((r) => [r.range, formatPercent(r.percent)])}
+                head={["Class size", "Sections"]}
+                rows={ac.classSizes.map((r) => [r.range, formatNumber(r.count)])}
               />
             </SubBlock>
           )}
           {ac.classSubsections.length > 0 && (
-            <SubBlock title="Class-size distribution (subsections)" full>
+            <SubBlock title="Class subsections by size (count)" full>
               <HeadedTable
-                head={["Class size", "Share of subsections"]}
-                rows={ac.classSubsections.map((r) => [r.range, formatPercent(r.percent)])}
+                head={["Class size", "Subsections"]}
+                rows={ac.classSubsections.map((r) => [r.range, formatNumber(r.count)])}
               />
             </SubBlock>
           )}

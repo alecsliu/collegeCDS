@@ -60,14 +60,17 @@ const HOLISTIC_FACTORS: AdmissionFactor[] = [
   { factor: "Level of applicant’s interest", level: "Considered" },
 ];
 
-const CLASS_SIZES = (under20: number): ClassSizeRow[] => [
-  { range: "2–9 students", percent: Math.round(under20 * 0.42) },
-  { range: "10–19 students", percent: Math.round(under20 * 0.58) },
-  { range: "20–29 students", percent: Math.round((100 - under20) * 0.55) },
-  { range: "30–39 students", percent: Math.round((100 - under20) * 0.2) },
-  { range: "40–49 students", percent: Math.round((100 - under20) * 0.1) },
-  { range: "50+ students", percent: Math.round((100 - under20) * 0.15) },
-];
+// I3 reports the *number* of undergraduate class sections in each size band.
+// `under20` is the share (%) of sections under 20; `total` is the section count.
+const CLASS_SIZES = (under20: number, total: number): ClassSizeRow[] => {
+  const over = 100 - under20;
+  const pct = [under20 * 0.42, under20 * 0.58, over * 0.55, over * 0.2, over * 0.1, over * 0.15];
+  const labels = [
+    "2–9 students", "10–19 students", "20–29 students",
+    "30–39 students", "40–49 students", "50+ students",
+  ];
+  return labels.map((range, i) => ({ range, count: Math.round((total * pct[i]) / 100) }));
+};
 
 // ——— Per-school details for the derived sections ———
 const WEBSITES: Record<string, string> = {
@@ -498,8 +501,11 @@ function build(s: Seed): CdsRecord {
     fc("Highest degree bachelor’s", ...fp(2)),
     fc("Highest degree unknown / other", ...fp(1)),
   ];
+  const totalSections = Math.round(s.ug * 0.22);
   const classSubsections =
-    s.u20 != null ? CLASS_SIZES(clamp(s.u20 + 15, 0, 95)) : [];
+    s.u20 != null
+      ? CLASS_SIZES(clamp(s.u20 + 15, 0, 95), Math.round(totalSections * 0.5))
+      : [];
 
   // B1 — enrollment matrix (full/part-time × gender). Splits are illustrative.
   const w = women / 100;
@@ -561,8 +567,9 @@ function build(s: Seed): CdsRecord {
 
   // C1 — applications by gender, enrollee status, and residency.
   const gA = genderSplit(s.apps, w);
-  const gD = genderSplit(s.adm, w);
-  const gE = genderSplit(s.enr, w);
+  // Slight per-school skew so admit/yield rates differ by gender.
+  const gD = genderSplit(s.adm, clamp(w + ((hash(s.slug, 30) % 7) - 3) / 100, 0.35, 0.65));
+  const gE = genderSplit(s.enr, clamp(w + ((hash(s.slug, 31) % 5) - 2) / 100, 0.35, 0.65));
   const byGender: GenderStageRow[] = [
     { group: "Men", applied: gA.men, admitted: gD.men, enrolled: gE.men },
     { group: "Women", applied: gA.women, admitted: gD.women, enrolled: gE.women },
@@ -782,7 +789,7 @@ function build(s: Seed): CdsRecord {
             studentFacultyRatio: s.ratio,
             fullTimeFaculty: s.fac ?? null,
             pctClassesUnder20: s.u20 ?? null,
-            classSizes: s.u20 != null ? CLASS_SIZES(s.u20) : [],
+            classSizes: s.u20 != null ? CLASS_SIZES(s.u20, totalSections) : [],
             partTimeFaculty: s.fac != null ? facPt : null,
             totalFaculty: s.fac != null ? facFt + facPt : null,
             pctTerminalDegree: facTerminal,

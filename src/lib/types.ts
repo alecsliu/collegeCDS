@@ -320,10 +320,10 @@ export interface CostSection {
   awardCriteria: string[];
 }
 
-/** One row of the class-size distribution, per CDS section I3. */
+/** One row of the class-size distribution (I3) — a reported count of sections. */
 export interface ClassSizeRow {
   range: string;
-  percent: number | null;
+  count: number | null;
 }
 
 /** One row of the I1 instructional-faculty count table. */
