@@ -351,7 +351,6 @@ function build(s: Seed): CdsRecord {
   const eaApps = hasEd ? null : Math.round(s.apps * 0.35);
   const stickerInState = s.tIn + s.rb + (s.fees ?? 0);
   const pctPart = pick(s.slug, 8, 3, 12);
-  const fullTimeUg = Math.round((s.ug * (100 - pctPart)) / 100);
   const grad = s.total - s.ug;
   const bachelors = Math.round(s.ug * 0.24);
   const avgDebt = isPrivate
