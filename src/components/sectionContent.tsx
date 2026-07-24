@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { AidRow, CdsRecord, SectionKey } from "@/lib/types";
+import type { CdsRecord, SectionKey } from "@/lib/types";
 import DataTable, { type DataRow } from "@/components/DataTable";
 import GridTable from "@/components/GridTable";
 import NotReported from "@/components/NotReported";
@@ -70,34 +70,6 @@ function HeadedTable({
             </tr>
           );
         })}
-      </tbody>
-    </table>
-  );
-}
-
-/** The financial-aid-awarded table (H1): type / recipients / average amount. */
-function AidTable({ rows }: { rows: AidRow[] }) {
-  return (
-    <table className="w-full border-collapse text-sm">
-      <thead>
-        <tr className="border-b border-line">
-          <th className="py-2 pr-4 text-left font-medium text-ink-2">Type of aid</th>
-          <th className="py-2 px-4 text-right font-medium text-ink-2">Recipients</th>
-          <th className="py-2 text-right font-medium text-ink-2">Avg. amount</th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((r) => (
-          <tr key={r.type} className="border-b border-line last:border-0">
-            <td className="py-2 pr-4 text-left text-ink-2">{r.type}</td>
-            <td className="px-4 py-2 text-right tabular-nums text-ink">
-              {r.recipients === null ? <NotReported /> : formatNumber(r.recipients)}
-            </td>
-            <td className="py-2 text-right font-medium tabular-nums text-ink">
-              {r.avgAmount === null ? <NotReported /> : formatCurrency(r.avgAmount)}
-            </td>
-          </tr>
-        ))}
       </tbody>
     </table>
   );
@@ -184,6 +156,7 @@ export function renderSectionBody(
         { label: "Coeducational status", value: formatText(g.classification) },
         { label: "Academic calendar", value: formatText(g.academicCalendar) },
         { label: "Degrees offered", value: formatText(g.degreesOffered), tier: "full" },
+        { label: "Campus-belonging webpage", value: formatText(g.campusBelongingUrl), tier: "full" },
         { label: "Website", value: formatText(g.website) },
       ];
       return <DataTable rows={rows} />;
@@ -209,10 +182,10 @@ export function renderSectionBody(
             <GridTable
               firstCol="Student category"
               groups={[
-                { label: "Full-time", span: 2 },
-                { label: "Part-time", span: 2 },
+                { label: "Full-time", span: 3 },
+                { label: "Part-time", span: 3 },
               ]}
-              columns={["Men", "Women", "Men", "Women"]}
+              columns={["Men", "Women", "Unknown", "Men", "Women", "Unknown"]}
               rows={e.enrollmentMatrix.map((r) => ({
                 label: r.label,
                 indent: r.indent,
@@ -220,8 +193,10 @@ export function renderSectionBody(
                 values: [
                   formatNumber(r.ftMen),
                   formatNumber(r.ftWomen),
+                  formatNumber(r.ftUnknown),
                   formatNumber(r.ptMen),
                   formatNumber(r.ptWomen),
+                  formatNumber(r.ptUnknown),
                 ],
               }))}
             />
@@ -255,13 +230,12 @@ export function renderSectionBody(
             />
           </SubBlock>
 
-          <SubBlock title="Degrees awarded" full>
+          <SubBlock title="Degrees awarded by type" full>
             <DataTable
-              rows={[
-                { label: "Bachelor’s degrees", value: formatNumber(e.bachelorsAwarded) },
-                { label: "Master’s degrees", value: formatNumber(e.mastersAwarded) },
-                { label: "Doctoral degrees", value: formatNumber(e.doctoratesAwarded) },
-              ]}
+              rows={e.degreesByType.map((d) => ({
+                label: d.type,
+                value: formatNumber(d.count),
+              }))}
             />
           </SubBlock>
         </>
@@ -281,6 +255,11 @@ export function renderSectionBody(
         { label: "Enrollment deposit", value: formatCurrency(a.depositAmount), cdsRef: "C16", tier: "full" },
         { label: "Application fee", value: formatCurrency(a.applicationFee), cdsRef: "C13", tier: "full" },
         { label: "Fee waiver available", value: formatText(a.feeWaiverAvailable), cdsRef: "C13", tier: "full" },
+        { label: "High-school completion requirement", value: formatText(a.hsCompletionRequirement), tier: "full" },
+        { label: "College-prep program", value: formatText(a.collegePrepProgram), tier: "full" },
+        { label: "Open-admission policy", value: formatText(a.openAdmission), tier: "full" },
+        { label: "Deferred admission", value: formatText(a.deferredAdmission), tier: "full" },
+        { label: "Early admission of HS students", value: formatText(a.earlyAdmissionHs), tier: "full" },
         { label: "Testing policy", value: formatText(a.testPolicy), cdsRef: "C8" },
         { label: "Submitting SAT scores", value: formatPercent(a.pctSubmittingSat), cdsRef: "C9" },
         { label: "Submitting ACT scores", value: formatPercent(a.pctSubmittingAct), cdsRef: "C9" },
@@ -448,7 +427,23 @@ export function renderSectionBody(
                 { label: "Offered a waitlist place", value: formatNumber(a.waitlistOffered) },
                 { label: "Accepted a place", value: formatNumber(a.waitlistAccepted) },
                 { label: "Admitted from waitlist", value: formatNumber(a.waitlistAdmitted) },
+                { label: "Waiting list ranked", value: formatText(a.waitlistRanked), tier: "full" },
+                { label: "Rank released to students", value: formatText(a.waitlistReleasedStudents), tier: "full" },
+                { label: "Rank released to counselors", value: formatText(a.waitlistReleasedCounselors), tier: "full" },
               ]}
+            />
+          </SubBlock>
+
+          <SubBlock title="High-school units required / recommended" full>
+            <GridTable
+              firstCol="Subject"
+              columns={["Required", "Recommended"]}
+              rows={a.unitRequirements.map((u) => ({
+                label: u.subject,
+                indent: u.indent,
+                emphasize: !u.indent,
+                values: [formatNumber(u.required), formatNumber(u.recommended)],
+              }))}
             />
           </SubBlock>
         </>
@@ -473,6 +468,8 @@ export function renderSectionBody(
         { label: "Requires an essay", value: formatText(t.requiresEssay), cdsRef: "D4", tier: "full" },
         { label: "Requires college transcript", value: formatText(t.requiresCollegeTranscript), cdsRef: "D4", tier: "full" },
         { label: "Requires good academic standing", value: formatText(t.requiresGoodStanding), cdsRef: "D4", tier: "full" },
+        { label: "Minimum high-school GPA", value: t.minHsGpa === null ? NOT_REPORTED : t.minHsGpa.toFixed(1), tier: "full" },
+        { label: "Accepts military / veteran credit", value: formatText(t.acceptsMilitaryCredit), tier: "full" },
       ];
       return (
         <>
@@ -566,6 +563,9 @@ export function renderSectionBody(
         { label: "Room & board", value: formatCurrency(c.roomAndBoard), cdsRef: "G6" },
         { label: "Books & supplies", value: formatCurrency(c.booksAndSupplies), cdsRef: "G7", tier: "full" },
         { label: "Other expenses (est.)", value: formatCurrency(c.otherExpenses), cdsRef: "G9", tier: "full" },
+        { label: "Per-credit-hour tuition", value: formatCurrency(c.perCreditHour), tier: "full" },
+        { label: "Tuition varies by year of study", value: formatText(c.tuitionVariesByYear), tier: "full" },
+        { label: "Net-price calculator", value: formatText(c.netPriceCalculatorUrl), tier: "full" },
       ];
       const aid: DataRow[] = [
         { label: "Average need-based award", value: formatCurrency(c.avgNeedAid), cdsRef: "H2" },
@@ -587,28 +587,65 @@ export function renderSectionBody(
           <SubBlock title="Financial aid">
             <DataTable rows={aid} />
           </SubBlock>
-          {c.aidAwarded.length > 0 && (
-            <SubBlock title="Aid awarded by type" full>
-              <AidTable rows={c.aidAwarded} />
-            </SubBlock>
-          )}
-          <SubBlock title="Applying for aid" full>
-            <DataTable
-              rows={[
-                { label: "Applied for need-based aid", value: formatNumber(c.numApplyingForAid), cdsRef: "H2" },
-                { label: "Determined to have need", value: formatNumber(c.numWithNeed), cdsRef: "H2" },
-                { label: "Received need-based aid", value: formatNumber(c.numReceivedNeedAid), cdsRef: "H2" },
-              ]}
+          <SubBlock title="Aid awarded by type" full>
+            <GridTable
+              firstCol="Type of aid"
+              columns={["Need-based", "Non-need-based"]}
+              rows={c.aidByType.map((r) => ({
+                label: r.type,
+                indent: r.indent,
+                emphasize: r.emphasize,
+                values: [formatCurrency(r.needBased), formatCurrency(r.nonNeed)],
+              }))}
+            />
+          </SubBlock>
+          <SubBlock title="Students awarded aid" full>
+            <GridTable
+              firstCol=""
+              columns={["FT first-year", "FT undergrad", "< FT undergrad"]}
+              rows={c.aidCounts.map((r) => ({
+                label: r.label,
+                emphasize: r.label === "Degree-seeking undergraduates",
+                values: [
+                  formatNumber(r.ftFirstYear),
+                  formatNumber(r.ftUndergrad),
+                  formatNumber(r.ltFtUndergrad),
+                ],
+              }))}
+            />
+          </SubBlock>
+          <SubBlock title="Average awards" full>
+            <GridTable
+              firstCol=""
+              columns={["FT first-year", "FT undergrad", "< FT undergrad"]}
+              rows={c.aidAverages.map((r) => {
+                const fmt = r.unit === "percent" ? formatPercent : formatCurrency;
+                return {
+                  label: r.label,
+                  values: [
+                    fmt(r.ftFirstYear),
+                    fmt(r.ftUndergrad),
+                    fmt(r.ltFtUndergrad),
+                  ],
+                };
+              })}
             />
           </SubBlock>
           <SubBlock title="Aid application requirements" full>
             <DataTable
               rows={[
-                { label: "FAFSA required", value: formatText(c.fafsaRequired), cdsRef: "H6" },
-                { label: "CSS Profile required", value: formatText(c.cssProfileRequired), cdsRef: "H6" },
-                { label: "Priority filing date", value: formatText(c.aidPriorityDeadline), cdsRef: "H6" },
+                { label: "FAFSA required", value: formatText(c.fafsaRequired) },
+                { label: "CSS Profile required", value: formatText(c.cssProfileRequired) },
+                { label: "Priority filing date", value: formatText(c.aidPriorityDeadline) },
+                { label: "Aid for nonresidents", value: formatText(c.nonresidentAidPolicy) },
               ]}
             />
+          </SubBlock>
+          <SubBlock title="Types of aid available" full>
+            <TagList items={c.typesOfAid} />
+          </SubBlock>
+          <SubBlock title="Institutional award criteria" full>
+            <TagList items={c.awardCriteria} />
           </SubBlock>
         </>
       );
@@ -632,11 +669,36 @@ export function renderSectionBody(
           <SubBlock title="Overview">
             <DataTable rows={overview} />
           </SubBlock>
+          {ac.facultyCounts.length > 0 && (
+            <SubBlock title="Instructional faculty" full>
+              <GridTable
+                firstCol=""
+                columns={["Full-time", "Part-time", "Total"]}
+                rows={ac.facultyCounts.map((r) => ({
+                  label: r.label,
+                  emphasize: r.emphasize,
+                  values: [
+                    formatNumber(r.fullTime),
+                    formatNumber(r.partTime),
+                    formatNumber(r.total),
+                  ],
+                }))}
+              />
+            </SubBlock>
+          )}
           {ac.classSizes.length > 0 && (
-            <SubBlock title="Class-size distribution">
+            <SubBlock title="Class-size distribution (sections)">
               <HeadedTable
                 head={["Class size", "Share of sections"]}
                 rows={ac.classSizes.map((r) => [r.range, formatPercent(r.percent)])}
+              />
+            </SubBlock>
+          )}
+          {ac.classSubsections.length > 0 && (
+            <SubBlock title="Class-size distribution (subsections)" full>
+              <HeadedTable
+                head={["Class size", "Share of subsections"]}
+                rows={ac.classSubsections.map((r) => [r.range, formatPercent(r.percent)])}
               />
             </SubBlock>
           )}

@@ -111,12 +111,14 @@ verifiable. Grounded in the **CDS 2025–26** template. Status:
 |---|---|---|
 | J1 degrees by CIP field (~34 categories) | 🟡 | ~16-category breakdown; full CIP-2020 list ⬜ |
 
-## Priority roadmap (biggest gaps)
-1. ~~**C1 / D2 matrices** — by gender, FT/PT status, residency~~ ✅ done
-2. **C5** units required/recommended table.
-3. **C2** waitlist "ranked?" + released-to-counselors flags.
-4. **H1 / H2** full aid tables (need vs non-need; FT-first-year / FT-ug / <FT-ug columns).
-5. **I1** full faculty count table; **I3** subsections.
-6. **B3** 9 award types; **J1** full CIP list; **B1** Unknown-sex column.
-7. Smaller: A6, C3/C4/C6/C18/C19, D6/D18–22, G0/G2–G6, H2A/H6/H12–14.
-8. Cross-year: two missing states (NR = blank vs "Not collected").
+## Priority roadmap
+1. ~~**C1 / D2 matrices** — by gender, FT/PT status, residency~~ ✅
+2. ~~**C5** units required/recommended table~~ ✅
+3. ~~**C2** waitlist "ranked?" + released-to-counselors~~ ✅
+4. ~~**H1 / H2** full aid tables (need vs non-need; 3 cohort columns)~~ ✅
+5. ~~**I1** faculty count table; **I3** subsections; **B3** 9 award types; **J1** full CIP; **B1** Unknown-sex column~~ ✅
+6. ~~A6, C3/C4/C6/C18/C19, D6/D18, G0/G3/G6, H6/H12–14~~ ✅ (representative subset)
+
+### Still open (long tail)
+- G2/G4/G5 (credits-per-term, varies-by-program, commuter cost split); D19–D22 (military-credit detail); H2A (non-need counts); H14 need-vs-non-need criteria split.
+- Cross-year format handling: two missing states (NR = blank vs "Not collected").

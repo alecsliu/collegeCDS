@@ -32,6 +32,7 @@ export interface GeneralSection {
   // full CDS
   classification: string | null;
   degreesOffered: string | null;
+  campusBelongingUrl: string | null;
 }
 
 /** A row of the enrollment matrix (B1): counts by full/part-time × gender. */
@@ -39,8 +40,10 @@ export interface EnrollMatrixRow {
   label: string;
   ftMen: number | null;
   ftWomen: number | null;
+  ftUnknown: number | null;
   ptMen: number | null;
   ptWomen: number | null;
+  ptUnknown: number | null;
   indent?: boolean;
   emphasize?: boolean;
 }
@@ -60,6 +63,12 @@ export interface GradRateGroup {
   rate: number | null;
 }
 
+/** One row of degrees awarded by award type (B3). */
+export interface DegreeTypeRow {
+  type: string;
+  count: number | null;
+}
+
 /** CDS section B — Enrollment & persistence. */
 export interface EnrollmentSection {
   totalEnrollment: number | null;
@@ -76,6 +85,7 @@ export interface EnrollmentSection {
   bachelorsAwarded: number | null;
   mastersAwarded: number | null;
   doctoratesAwarded: number | null;
+  degreesByType: DegreeTypeRow[];
 }
 
 export type FactorLevel =
@@ -123,6 +133,14 @@ export interface StatusGenderRow {
   partTime: number | null;
 }
 
+/** One row of the C5 high-school units required/recommended table. */
+export interface UnitRow {
+  subject: string;
+  required: number | null;
+  recommended: number | null;
+  indent?: boolean;
+}
+
 /** Applied/admitted/enrolled by residency (C1). */
 export interface ResidencyRow {
   stage: string;
@@ -152,6 +170,15 @@ export interface AdmissionsSection {
   byGender: GenderStageRow[];
   enrolledByStatus: StatusGenderRow[];
   byResidency: ResidencyRow[];
+  waitlistRanked: string | null;
+  waitlistReleasedStudents: string | null;
+  waitlistReleasedCounselors: string | null;
+  hsCompletionRequirement: string | null;
+  collegePrepProgram: string | null;
+  openAdmission: string | null;
+  unitRequirements: UnitRow[];
+  deferredAdmission: string | null;
+  earlyAdmissionHs: string | null;
   applicationFee: number | null;
   feeWaiverAvailable: string | null;
   satComposite25: number | null;
@@ -197,6 +224,8 @@ export interface TransferSection {
   requiresEssay: string | null;
   requiresCollegeTranscript: string | null;
   requiresGoodStanding: string | null;
+  minHsGpa: number | null;
+  acceptsMilitaryCredit: string | null;
 }
 
 /** CDS section E — Academic offerings & policies. */
@@ -232,11 +261,30 @@ export interface StudentLifeSection {
   housingOptions: string[];
 }
 
-/** One row of the financial-aid-awarded table, per CDS section H1. */
-export interface AidRow {
+/** One row of the aid-awarded-by-type table (H1): dollars by need vs non-need. */
+export interface AidTypeRow {
   type: string;
-  recipients: number | null;
-  avgAmount: number | null;
+  needBased: number | null;
+  nonNeed: number | null;
+  indent?: boolean;
+  emphasize?: boolean;
+}
+
+/** One line of the students-awarded-aid counts table (H2), by cohort. */
+export interface AidCountRow {
+  label: string;
+  ftFirstYear: number | null;
+  ftUndergrad: number | null;
+  ltFtUndergrad: number | null;
+}
+
+/** One line of the average-award table (H2), by cohort. */
+export interface AidAvgRow {
+  label: string;
+  ftFirstYear: number | null;
+  ftUndergrad: number | null;
+  ltFtUndergrad: number | null;
+  unit: "currency" | "percent";
 }
 
 /** CDS sections G & H — Annual expenses & financial aid. */
@@ -255,22 +303,36 @@ export interface CostSection {
   avgDebtAtGraduation: number | null;
   avgFederalDebt: number | null;
   pctGraduatingWithDebt: number | null;
-  aidAwarded: AidRow[];
-  numApplyingForAid: number | null;
-  numWithNeed: number | null;
-  numReceivedNeedAid: number | null;
   avgAidPackage: number | null;
   avgNeedGrant: number | null;
   avgNeedLoan: number | null;
   fafsaRequired: string | null;
   cssProfileRequired: string | null;
   aidPriorityDeadline: string | null;
+  netPriceCalculatorUrl: string | null;
+  perCreditHour: number | null;
+  tuitionVariesByYear: string | null;
+  aidByType: AidTypeRow[];
+  aidCounts: AidCountRow[];
+  aidAverages: AidAvgRow[];
+  nonresidentAidPolicy: string | null;
+  typesOfAid: string[];
+  awardCriteria: string[];
 }
 
 /** One row of the class-size distribution, per CDS section I3. */
 export interface ClassSizeRow {
   range: string;
   percent: number | null;
+}
+
+/** One row of the I1 instructional-faculty count table. */
+export interface FacultyCountRow {
+  label: string;
+  fullTime: number | null;
+  partTime: number | null;
+  total: number | null;
+  emphasize?: boolean;
 }
 
 /** CDS section I — Instructional faculty & class size. */
@@ -285,6 +347,8 @@ export interface FacultySection {
   pctTerminalDegree: number | null;
   pctFemaleFaculty: number | null;
   pctMinorityFaculty: number | null;
+  facultyCounts: FacultyCountRow[];
+  classSubsections: ClassSizeRow[];
 }
 
 /** One row of degrees conferred by field, per CDS section J. */

@@ -1,10 +1,14 @@
 import type {
   AdmissionFactor,
-  AidRow,
+  AidAvgRow,
+  AidCountRow,
+  AidTypeRow,
   CdsRecord,
   ClassSizeRow,
   DegreeRow,
+  DegreeTypeRow,
   EnrollMatrixRow,
+  FacultyCountRow,
   GenderStageRow,
   GradRateGroup,
   RaceRow,
@@ -12,6 +16,7 @@ import type {
   ScoreBandRow,
   StatusGenderRow,
   TestScoreRange,
+  UnitRow,
 } from "@/lib/types";
 import { UNIVERSITIES } from "@/data/universities";
 
@@ -109,6 +114,21 @@ const SETTINGS: Record<string, string> = {
 
 const QUARTER = new Set(["stanford", "northwestern", "ucla", "dartmouth"]);
 const OPEN_CURRICULUM = new Set(["brown"]);
+
+// C5 — representative high-school units required / recommended.
+const UNIT_REQ: UnitRow[] = [
+  { subject: "Total academic units", required: 16, recommended: 18 },
+  { subject: "English", required: 4, recommended: 4, indent: true },
+  { subject: "Mathematics", required: 3, recommended: 4, indent: true },
+  { subject: "Science", required: 2, recommended: 3, indent: true },
+  { subject: "Of these, must be lab", required: 2, recommended: 3, indent: true },
+  { subject: "Foreign language", required: 2, recommended: 4, indent: true },
+  { subject: "Social studies", required: 2, recommended: 3, indent: true },
+  { subject: "History", required: 1, recommended: 2, indent: true },
+  { subject: "Academic electives", required: 2, recommended: 3, indent: true },
+  { subject: "Computer science", required: null, recommended: 1, indent: true },
+  { subject: "Visual / performing arts", required: 1, recommended: 1, indent: true },
+];
 
 // IPEDS racial/ethnic categories (shares sum to 100). Used for the F ethnicity
 // percentages and the B2 enrollment-by-race counts.
@@ -242,60 +262,52 @@ const HOUSING_FULL = [
   "Theme housing", "Wellness / substance-free housing",
 ];
 
-/** Fuller degrees-conferred (CIP) breakdown for the Full CDS view. */
+// J1 — the full CIP-2020 disciplinary list. Each variant weights its major
+// fields; the rest get a small share, then everything is normalized to 100%.
+const CIP_NAMES = [
+  "Agriculture", "Natural resources & conservation", "Architecture",
+  "Area, ethnic & gender studies", "Communication & journalism",
+  "Communication technologies", "Computer & information sciences",
+  "Personal & culinary services", "Education", "Engineering",
+  "Engineering technologies", "Foreign languages & linguistics",
+  "Family & consumer sciences", "Law & legal studies", "English language & literature",
+  "Liberal arts & general studies", "Library science", "Biological & biomedical sciences",
+  "Mathematics & statistics", "Military science & technologies", "Interdisciplinary studies",
+  "Parks, recreation & fitness", "Philosophy & religious studies",
+  "Theology & religious vocations", "Physical sciences", "Science technologies", "Psychology",
+  "Homeland security & law enforcement", "Public administration & social services",
+  "Social sciences", "Construction trades", "Mechanic & repair technologies",
+  "Precision production", "Transportation & materials moving", "Visual & performing arts",
+  "Health professions", "Business, management & marketing", "History",
+];
+const cipDist = (majors: Record<string, number>): DegreeRow[] => {
+  const raw = CIP_NAMES.map((field) => ({ field, w: majors[field] ?? 0.2 }));
+  const sum = raw.reduce((a, r) => a + r.w, 0);
+  return raw.map((r) => ({ field: r.field, percent: Math.round((r.w / sum) * 1000) / 10 }));
+};
 const CIP_FULL: Record<keyof typeof DEGREE_DISTS, DegreeRow[]> = {
-  stem: [
-    { field: "Engineering", percent: 22 },
-    { field: "Computer & information sciences", percent: 15 },
-    { field: "Biological & biomedical sciences", percent: 11 },
-    { field: "Social sciences", percent: 9 },
-    { field: "Mathematics & statistics", percent: 7 },
-    { field: "Physical sciences", percent: 7 },
-    { field: "Business, management, marketing", percent: 7 },
-    { field: "Health professions", percent: 5 },
-    { field: "Psychology", percent: 4 },
-    { field: "Multi / interdisciplinary studies", percent: 3 },
-    { field: "Visual & performing arts", percent: 3 },
-    { field: "Architecture", percent: 2 },
-    { field: "Communication & journalism", percent: 2 },
-    { field: "English language & literature", percent: 2 },
-    { field: "History", percent: 1 },
-  ],
-  arts: [
-    { field: "Visual & performing arts", percent: 15 },
-    { field: "Business, management, marketing", percent: 14 },
-    { field: "Social sciences", percent: 12 },
-    { field: "Communication & journalism", percent: 10 },
-    { field: "Liberal arts & humanities", percent: 8 },
-    { field: "Health professions", percent: 7 },
-    { field: "Psychology", percent: 6 },
-    { field: "Biological & biomedical sciences", percent: 5 },
-    { field: "English language & literature", percent: 5 },
-    { field: "Computer & information sciences", percent: 4 },
-    { field: "Foreign languages & linguistics", percent: 3 },
-    { field: "History", percent: 3 },
-    { field: "Multi / interdisciplinary studies", percent: 3 },
-    { field: "Engineering", percent: 3 },
-    { field: "Education", percent: 2 },
-  ],
-  balanced: [
-    { field: "Social sciences", percent: 18 },
-    { field: "Biological & biomedical sciences", percent: 13 },
-    { field: "Engineering", percent: 9 },
-    { field: "Computer & information sciences", percent: 9 },
-    { field: "Psychology", percent: 7 },
-    { field: "Mathematics & statistics", percent: 6 },
-    { field: "History", percent: 5 },
-    { field: "English language & literature", percent: 5 },
-    { field: "Business, management, marketing", percent: 5 },
-    { field: "Visual & performing arts", percent: 5 },
-    { field: "Multi / interdisciplinary studies", percent: 4 },
-    { field: "Physical sciences", percent: 4 },
-    { field: "Health professions", percent: 3 },
-    { field: "Communication & journalism", percent: 3 },
-    { field: "Foreign languages & linguistics", percent: 2 },
-    { field: "Area / ethnic / gender studies", percent: 2 },
-  ],
+  stem: cipDist({
+    "Engineering": 22, "Computer & information sciences": 15, "Biological & biomedical sciences": 11,
+    "Social sciences": 9, "Mathematics & statistics": 7, "Physical sciences": 7,
+    "Business, management & marketing": 7, "Health professions": 5, "Psychology": 4,
+    "Interdisciplinary studies": 3, "Visual & performing arts": 3, "Architecture": 2,
+    "Communication & journalism": 2, "English language & literature": 2, "History": 1,
+  }),
+  arts: cipDist({
+    "Visual & performing arts": 15, "Business, management & marketing": 14, "Social sciences": 12,
+    "Communication & journalism": 10, "Liberal arts & general studies": 8, "Health professions": 7,
+    "Psychology": 6, "Biological & biomedical sciences": 5, "English language & literature": 5,
+    "Computer & information sciences": 4, "Foreign languages & linguistics": 3, "History": 3,
+    "Interdisciplinary studies": 3, "Engineering": 3, "Education": 2,
+  }),
+  balanced: cipDist({
+    "Social sciences": 18, "Biological & biomedical sciences": 13, "Engineering": 9,
+    "Computer & information sciences": 9, "Psychology": 7, "Mathematics & statistics": 6,
+    "History": 5, "English language & literature": 5, "Business, management & marketing": 5,
+    "Visual & performing arts": 5, "Interdisciplinary studies": 4, "Physical sciences": 4,
+    "Health professions": 3, "Communication & journalism": 3, "Foreign languages & linguistics": 2,
+    "Area, ethnic & gender studies": 2,
+  }),
 };
 
 /** Test-score seed: `null` means test-blind (no scores reported). */
@@ -378,13 +390,116 @@ function build(s: Seed): CdsRecord {
     ? pick(s.slug, 13, 12000, 26000)
     : pick(s.slug, 13, 18000, 30000);
   const numRecvNeed = s.recv === null ? null : Math.round((s.ug * s.recv) / 100);
-  const aidAwarded: AidRow[] = [
-    { type: "Need-based scholarships / grants", recipients: numRecvNeed, avgAmount: s.aid },
-    { type: "Non-need-based scholarships / grants", recipients: Math.round(s.ug * 0.12), avgAmount: s.aid === null ? null : Math.round(s.aid * 0.4) },
-    { type: "Need-based self-help (loans)", recipients: numRecvNeed === null ? null : Math.round(numRecvNeed * 0.55), avgAmount: pick(s.slug, 22, 4000, 7000) },
-    { type: "Federal Work-Study", recipients: Math.round(s.ug * 0.08), avgAmount: 2600 },
-    { type: "Federal Pell grants", recipients: Math.round((s.ug * pick(s.slug, 23, 12, 26)) / 100), avgAmount: 5000 },
+  const avgNeedLoan = pick(s.slug, 25, 4000, 7000);
+  const aidNull = s.aid === null;
+
+  // H1 — aid awarded by type ($), need-based vs non-need-based.
+  const pNeed = s.aid === null ? 0 : (numRecvNeed ?? 0) * s.aid;
+  const nnPool = Math.round(s.ug * 0.12) * (s.aid === null ? 22000 : Math.round(s.aid * 0.4));
+  const nb = (frac: number) => (aidNull ? null : Math.round(pNeed * frac));
+  const nn = (frac: number) => Math.round(nnPool * frac);
+  const ws1 = Math.round(s.ug * 0.08 * 2600);
+  const ws2 = Math.round(s.ug * 0.02 * 2000);
+  const aidByType: AidTypeRow[] = [
+    { type: "Federal grants", needBased: nb(0.15), nonNeed: nn(0.05), indent: true },
+    { type: "State grants", needBased: nb(0.08), nonNeed: nn(0.05), indent: true },
+    { type: "Institutional grants", needBased: nb(0.7), nonNeed: nn(0.8), indent: true },
+    { type: "External (private) grants", needBased: nb(0.07), nonNeed: nn(0.1), indent: true },
+    { type: "Total scholarships / grants", needBased: nb(1), nonNeed: nnPool, emphasize: true },
+    { type: "Student loans (excl. parent)", needBased: nb(0.25), nonNeed: nn(0.15), indent: true },
+    { type: "Federal Work-Study", needBased: ws1, nonNeed: null, indent: true },
+    { type: "State / other work-study", needBased: ws2, nonNeed: nn(0.03), indent: true },
+    { type: "Total self-help", needBased: aidNull ? null : Math.round(pNeed * 0.25) + ws1 + ws2, nonNeed: nn(0.18), emphasize: true },
+    { type: "Parent loans", needBased: null, nonNeed: nn(0.3) },
+    { type: "Tuition waivers", needBased: nb(0.02), nonNeed: nn(0.05) },
+    { type: "Athletic awards", needBased: null, nonNeed: nn(0.08) },
   ];
+
+  // H2 — students awarded aid (counts) and average awards, by cohort.
+  const cohorts: [number, number, number] = [s.enr, Math.round(s.ug * 0.94), Math.round(s.ug * 0.06)];
+  const recvFrac = (s.recv ?? 45) / 100;
+  const cLine = (label: string, frac: number): AidCountRow => ({
+    label,
+    ftFirstYear: Math.round(cohorts[0] * frac),
+    ftUndergrad: Math.round(cohorts[1] * frac),
+    ltFtUndergrad: Math.round(cohorts[2] * frac),
+  });
+  const aidCounts: AidCountRow[] = [
+    { label: "Degree-seeking undergraduates", ftFirstYear: cohorts[0], ftUndergrad: cohorts[1], ltFtUndergrad: cohorts[2] },
+    cLine("Applied for need-based aid", 0.6),
+    cLine("Determined to have need", 0.5),
+    cLine("Awarded any financial aid", recvFrac),
+    cLine("Awarded need-based scholarship / grant", recvFrac * 0.9),
+    cLine("Awarded need-based self-help", recvFrac * 0.55),
+    cLine("Awarded non-need scholarship / grant", 0.15),
+    cLine("Need fully met", recvFrac * ((s.met ?? 70) / 100)),
+  ];
+  const aLine = (label: string, val: number | null, unit: "currency" | "percent"): AidAvgRow => ({
+    label,
+    ftFirstYear: val,
+    ftUndergrad: val,
+    ltFtUndergrad: val,
+    unit,
+  });
+  const aidAverages: AidAvgRow[] = [
+    aLine("Average percent of need met", s.met, "percent"),
+    aLine("Average financial aid package", s.aid === null ? null : Math.round(s.aid * 1.15), "currency"),
+    aLine("Average need-based scholarship / grant", s.aid, "currency"),
+    aLine("Average need-based self-help", pick(s.slug, 26, 2500, 5000), "currency"),
+    aLine("Average need-based loan", avgNeedLoan, "currency"),
+  ];
+  const typesOfAid = [
+    "Federal Direct Subsidized Loans", "Federal Direct Unsubsidized Loans", "Federal PLUS Loans",
+    "State loans", "Institutional loans", "Federal Pell", "Federal SEOG",
+    "State scholarships / grants", "Institutional scholarships / grants",
+  ];
+  const awardCriteria = ["Academics", "Alumni affiliation", "Art", "Athletics", "Leadership", "Music / drama", "State / district residency"];
+  const nonresidentAidPolicy = isPrivate
+    ? "Institutional need-based and non-need-based aid available"
+    : "Limited institutional aid available to nonresidents";
+
+  // B3 — degrees awarded by type.
+  const degreesByType: DegreeTypeRow[] = [
+    { type: "Certificate / diploma", count: Math.round(grad * 0.05) },
+    { type: "Associate", count: 0 },
+    { type: "Bachelor’s", count: bachelors },
+    { type: "Post-bachelor’s certificate", count: Math.round(grad * 0.03) },
+    { type: "Master’s", count: Math.round(grad * 0.4) },
+    { type: "Post-master’s certificate", count: Math.round(grad * 0.02) },
+    { type: "Doctoral — research/scholarship", count: Math.round(grad * 0.08) },
+    { type: "Doctoral — professional practice", count: Math.round(grad * 0.05) },
+    { type: "Doctoral — other", count: Math.round(grad * 0.01) },
+  ];
+
+  // I1 — instructional-faculty counts (full/part-time × category).
+  const facFt = s.fac ?? 0;
+  const facPt = Math.round(facFt * 0.4);
+  const facFemale = pick(s.slug, 17, 32, 48);
+  const facMinority = pick(s.slug, 18, 18, 38);
+  const facTerminal = pick(s.slug, 15, 88, 99);
+  const fp = (p: number): [number, number] => [
+    Math.round((facFt * p) / 100),
+    Math.round((facPt * p) / 100),
+  ];
+  const fc = (label: string, ft: number, pt: number): FacultyCountRow => ({
+    label,
+    fullTime: ft,
+    partTime: pt,
+    total: ft + pt,
+  });
+  const facultyCounts: FacultyCountRow[] = [
+    { label: "Total instructional faculty", fullTime: facFt, partTime: facPt, total: facFt + facPt, emphasize: true },
+    fc("Members of minority groups", ...fp(facMinority)),
+    fc("Women", ...fp(facFemale)),
+    fc("Men", facFt - fp(facFemale)[0], facPt - fp(facFemale)[1]),
+    fc("Nonresident (international)", ...fp(5)),
+    fc("With doctorate / terminal degree", ...fp(facTerminal)),
+    fc("Highest degree master’s (not terminal)", ...fp(Math.max(0, 100 - facTerminal - 3))),
+    fc("Highest degree bachelor’s", ...fp(2)),
+    fc("Highest degree unknown / other", ...fp(1)),
+  ];
+  const classSubsections =
+    s.u20 != null ? CLASS_SIZES(clamp(s.u20 + 15, 0, 95)) : [];
 
   // B1 — enrollment matrix (full/part-time × gender). Splits are illustrative.
   const w = women / 100;
@@ -396,9 +511,20 @@ function build(s: Seed): CdsRecord {
   ): EnrollMatrixRow => {
     const ft = Math.round(total * ftFrac);
     const pt = total - ft;
-    const ftMen = Math.round(ft * (1 - w));
-    const ptMen = Math.round(pt * (1 - w));
-    return { label, ftMen, ftWomen: ft - ftMen, ptMen, ptWomen: pt - ptMen, ...opts };
+    const ftu = Math.round(ft * 0.01);
+    const ptu = Math.round(pt * 0.01);
+    const ftMen = Math.round((ft - ftu) * (1 - w));
+    const ptMen = Math.round((pt - ptu) * (1 - w));
+    return {
+      label,
+      ftMen,
+      ftWomen: ft - ftu - ftMen,
+      ftUnknown: ftu,
+      ptMen,
+      ptWomen: pt - ptu - ptMen,
+      ptUnknown: ptu,
+      ...opts,
+    };
   };
   const dsUg = Math.round(s.ug * 0.98);
   const ugFtFrac = (100 - pctPart) / 100;
@@ -483,6 +609,15 @@ function build(s: Seed): CdsRecord {
     { group: "Total", applied: tApps, admitted: tAdm, enrolled: teEnr },
   ];
 
+  // C2 — waitlist ranking.
+  const hasWl = s.wl[0] !== null;
+  const wlRanked = !hasWl
+    ? null
+    : ["mit", "princeton", "michigan"].includes(s.slug)
+      ? "Yes"
+      : "No";
+  const wlReleased = wlRanked === "Yes" ? "Yes" : hasWl ? "N/A" : null;
+
   return {
     slug: s.slug,
     year: s.year,
@@ -494,6 +629,7 @@ function build(s: Seed): CdsRecord {
       website: WEBSITES[s.slug] ? `www.${WEBSITES[s.slug]}` : null,
       classification: "Coeducational",
       degreesOffered: "Bachelor’s, Master’s, Doctoral",
+      campusBelongingUrl: WEBSITES[s.slug] ? `www.${WEBSITES[s.slug]}/belonging` : null,
     },
     enrollment: {
       totalEnrollment: s.total,
@@ -509,6 +645,7 @@ function build(s: Seed): CdsRecord {
       bachelorsAwarded: bachelors,
       mastersAwarded: Math.round(grad * 0.4),
       doctoratesAwarded: Math.round(grad * 0.08),
+      degreesByType,
     },
     admissions: {
       acceptanceRate: s.acc,
@@ -528,6 +665,15 @@ function build(s: Seed): CdsRecord {
       byGender,
       enrolledByStatus,
       byResidency,
+      waitlistRanked: wlRanked,
+      waitlistReleasedStudents: wlReleased,
+      waitlistReleasedCounselors: wlReleased,
+      hsCompletionRequirement: "High school diploma required; GED accepted",
+      collegePrepProgram: "Recommended",
+      openAdmission: "No",
+      unitRequirements: UNIT_REQ,
+      deferredAdmission: "Yes — up to one year",
+      earlyAdmissionHs: "No",
       applicationFee: pick(s.slug, 7, 65, 90),
       feeWaiverAvailable: "Yes",
       satComposite25: s.sat ? s.sat.ebrw[0] + s.sat.math[0] : null,
@@ -570,6 +716,8 @@ function build(s: Seed): CdsRecord {
       requiresEssay: "Yes",
       requiresCollegeTranscript: "Yes",
       requiresGoodStanding: "Yes",
+      minHsGpa: null,
+      acceptsMilitaryCredit: "Yes (ACE, CLEP, DSST)",
     },
     offerings: {
       specialStudyOptions: SPECIAL_STUDY_FULL,
@@ -611,16 +759,21 @@ function build(s: Seed): CdsRecord {
       avgDebtAtGraduation: avgDebt,
       avgFederalDebt: Math.round(avgDebt * 0.6),
       pctGraduatingWithDebt: pick(s.slug, 14, 25, 55),
-      aidAwarded,
-      numApplyingForAid: Math.round(s.ug * 0.6),
-      numWithNeed: Math.round(s.ug * 0.5),
-      numReceivedNeedAid: numRecvNeed,
       avgAidPackage: s.aid === null ? null : Math.round(s.aid * 1.15),
       avgNeedGrant: s.aid,
-      avgNeedLoan: pick(s.slug, 25, 4000, 7000),
+      avgNeedLoan,
       fafsaRequired: "Yes",
       cssProfileRequired: isPrivate ? "Yes" : "No",
       aidPriorityDeadline: isPrivate ? "February 1" : "March 2",
+      netPriceCalculatorUrl: WEBSITES[s.slug] ? `www.${WEBSITES[s.slug]}/npc` : null,
+      perCreditHour: Math.round(s.tIn / 30),
+      tuitionVariesByYear: "No",
+      aidByType,
+      aidCounts,
+      aidAverages,
+      nonresidentAidPolicy,
+      typesOfAid,
+      awardCriteria,
     },
     faculty:
       s.ratio === null
@@ -630,11 +783,13 @@ function build(s: Seed): CdsRecord {
             fullTimeFaculty: s.fac ?? null,
             pctClassesUnder20: s.u20 ?? null,
             classSizes: s.u20 != null ? CLASS_SIZES(s.u20) : [],
-            partTimeFaculty: s.fac != null ? Math.round(s.fac * 0.4) : null,
-            totalFaculty: s.fac != null ? Math.round(s.fac * 1.4) : null,
-            pctTerminalDegree: pick(s.slug, 15, 88, 99),
-            pctFemaleFaculty: pick(s.slug, 17, 32, 48),
-            pctMinorityFaculty: pick(s.slug, 18, 18, 38),
+            partTimeFaculty: s.fac != null ? facPt : null,
+            totalFaculty: s.fac != null ? facFt + facPt : null,
+            pctTerminalDegree: facTerminal,
+            pctFemaleFaculty: facFemale,
+            pctMinorityFaculty: facMinority,
+            facultyCounts,
+            classSubsections,
           },
     degrees: {
       byField: dist,
