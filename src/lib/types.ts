@@ -34,6 +34,32 @@ export interface GeneralSection {
   degreesOffered: string | null;
 }
 
+/** A row of the enrollment matrix (B1): counts by full/part-time × gender. */
+export interface EnrollMatrixRow {
+  label: string;
+  ftMen: number | null;
+  ftWomen: number | null;
+  ptMen: number | null;
+  ptWomen: number | null;
+  indent?: boolean;
+  emphasize?: boolean;
+}
+
+/** A row of the enrollment-by-race/ethnicity table (B2). */
+export interface RaceRow {
+  group: string;
+  firstYear: number | null;
+  undergrad: number | null;
+}
+
+/** A graduation-rate cohort group (B4–B21), incl. the Pell breakdown. */
+export interface GradRateGroup {
+  label: string;
+  cohort: number | null;
+  completed: number | null;
+  rate: number | null;
+}
+
 /** CDS section B — Enrollment & persistence. */
 export interface EnrollmentSection {
   totalEnrollment: number | null;
@@ -42,14 +68,11 @@ export interface EnrollmentSection {
   sixYearGraduation: number | null;
   fourYearGraduation: number | null;
   // full CDS
-  degreeSeekingUndergrad: number | null;
-  menUndergrad: number | null;
-  womenUndergrad: number | null;
-  fullTimeUndergrad: number | null;
-  partTimeUndergrad: number | null;
-  nonDegreeUndergrad: number | null;
-  graduateEnrollment: number | null;
   fiveYearGraduation: number | null;
+  graduateEnrollment: number | null;
+  enrollmentMatrix: EnrollMatrixRow[];
+  raceEthnicity: RaceRow[];
+  gradRates: GradRateGroup[];
   bachelorsAwarded: number | null;
   mastersAwarded: number | null;
   doctoratesAwarded: number | null;

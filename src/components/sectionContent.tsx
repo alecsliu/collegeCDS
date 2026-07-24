@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { AidRow, CdsRecord, SectionKey } from "@/lib/types";
 import DataTable, { type DataRow } from "@/components/DataTable";
+import GridTable from "@/components/GridTable";
 import NotReported from "@/components/NotReported";
 import {
   NOT_REPORTED,
@@ -124,6 +125,45 @@ function TagList({ items, emptyText }: { items: string[]; emptyText?: string }) 
 function formatGpa(value: number | null): string {
   return value === null ? NOT_REPORTED : value.toFixed(2);
 }
+
+const round1 = (n: number) => Math.round(n * 10) / 10;
+
+/**
+ * A visually distinct block for metrics *calculated* from CDS fields (not
+ * reported directly), each shown with its formula so it's traceable and
+ * comparable across schools.
+ */
+function CalculatedMetrics({
+  items,
+}: {
+  items: { label: string; value: string; formula: string }[];
+}) {
+  return (
+    <div className="rounded-card border border-crimson/20 bg-crimson-tint/30 px-4 py-3">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-crimson">
+        Calculated from CDS fields
+      </p>
+      <table className="w-full text-sm">
+        <tbody>
+          {items.map((i) => (
+            <tr key={i.label}>
+              <th
+                scope="row"
+                className="py-1 pr-4 text-left align-baseline font-normal text-ink-2"
+              >
+                {i.label}
+                <span className="ml-2 text-xs text-ink-3">{i.formula}</span>
+              </th>
+              <td className="py-1 text-right align-baseline font-medium tabular-nums text-ink">
+                {i.value}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 function formatGpa1(value: number | null): string {
   return value === null ? NOT_REPORTED : value.toFixed(1);
 }
@@ -153,29 +193,74 @@ export function renderSectionBody(
       const e = record.enrollment;
       if (!e) return null;
       const rows: DataRow[] = [
-        { label: "Total enrollment", value: formatNumber(e.totalEnrollment), cdsRef: "B1" },
-        { label: "Undergraduate enrollment", value: formatNumber(e.undergradEnrollment), cdsRef: "B1" },
-        { label: "Degree-seeking undergraduates", value: formatNumber(e.degreeSeekingUndergrad), cdsRef: "B1", tier: "full" },
-        { label: "Undergraduate men", value: formatNumber(e.menUndergrad), cdsRef: "B1", tier: "full" },
-        { label: "Undergraduate women", value: formatNumber(e.womenUndergrad), cdsRef: "B1", tier: "full" },
-        { label: "Full-time undergraduates", value: formatNumber(e.fullTimeUndergrad), cdsRef: "B1", tier: "full" },
-        { label: "Part-time undergraduates", value: formatNumber(e.partTimeUndergrad), cdsRef: "B1", tier: "full" },
-        { label: "Non-degree undergraduates", value: formatNumber(e.nonDegreeUndergrad), cdsRef: "B1", tier: "full" },
-        { label: "Graduate enrollment", value: formatNumber(e.graduateEnrollment), cdsRef: "B1", tier: "full" },
-        { label: "First-year retention rate", value: formatPercent(e.firstYearRetention), cdsRef: "B22" },
-        { label: "Four-year graduation rate", value: formatPercent(e.fourYearGraduation), cdsRef: "B11" },
-        { label: "Five-year graduation rate", value: formatPercent(e.fiveYearGraduation), cdsRef: "B11", tier: "full" },
-        { label: "Six-year graduation rate", value: formatPercent(e.sixYearGraduation), cdsRef: "B11" },
+        { label: "Total enrollment", value: formatNumber(e.totalEnrollment) },
+        { label: "Undergraduate enrollment", value: formatNumber(e.undergradEnrollment) },
+        { label: "Graduate enrollment", value: formatNumber(e.graduateEnrollment), tier: "full" },
+        { label: "First-year retention rate", value: formatPercent(e.firstYearRetention) },
+        { label: "Four-year graduation rate", value: formatPercent(e.fourYearGraduation) },
+        { label: "Five-year graduation rate", value: formatPercent(e.fiveYearGraduation), tier: "full" },
+        { label: "Six-year graduation rate", value: formatPercent(e.sixYearGraduation) },
       ];
       return (
         <>
           <DataTable rows={rows} />
+
+          <SubBlock title="Enrollment by status and gender" full>
+            <GridTable
+              firstCol="Student category"
+              groups={[
+                { label: "Full-time", span: 2 },
+                { label: "Part-time", span: 2 },
+              ]}
+              columns={["Men", "Women", "Men", "Women"]}
+              rows={e.enrollmentMatrix.map((r) => ({
+                label: r.label,
+                indent: r.indent,
+                emphasize: r.emphasize,
+                values: [
+                  formatNumber(r.ftMen),
+                  formatNumber(r.ftWomen),
+                  formatNumber(r.ptMen),
+                  formatNumber(r.ptWomen),
+                ],
+              }))}
+            />
+          </SubBlock>
+
+          <SubBlock title="Enrollment by racial / ethnic category" full>
+            <GridTable
+              firstCol="Category"
+              columns={["First-year", "Undergraduate"]}
+              rows={e.raceEthnicity.map((r) => ({
+                label: r.group,
+                emphasize: r.group === "Total",
+                values: [formatNumber(r.firstYear), formatNumber(r.undergrad)],
+              }))}
+            />
+          </SubBlock>
+
+          <SubBlock title="Graduation rates — six-year, by aid group" full>
+            <GridTable
+              firstCol="Group"
+              columns={["Cohort", "Completed", "Rate"]}
+              rows={e.gradRates.map((r) => ({
+                label: r.label,
+                emphasize: r.label === "All students",
+                values: [
+                  formatNumber(r.cohort),
+                  formatNumber(r.completed),
+                  formatPercent(r.rate),
+                ],
+              }))}
+            />
+          </SubBlock>
+
           <SubBlock title="Degrees awarded" full>
             <DataTable
               rows={[
-                { label: "Bachelor’s degrees", value: formatNumber(e.bachelorsAwarded), cdsRef: "B3" },
-                { label: "Master’s degrees", value: formatNumber(e.mastersAwarded), cdsRef: "B3" },
-                { label: "Doctoral degrees", value: formatNumber(e.doctoratesAwarded), cdsRef: "B3" },
+                { label: "Bachelor’s degrees", value: formatNumber(e.bachelorsAwarded) },
+                { label: "Master’s degrees", value: formatNumber(e.mastersAwarded) },
+                { label: "Doctoral degrees", value: formatNumber(e.doctoratesAwarded) },
               ]}
             />
           </SubBlock>
@@ -187,7 +272,6 @@ export function renderSectionBody(
       const a = record.admissions;
       if (!a) return null;
       const overview: DataRow[] = [
-        { label: "Acceptance rate", value: formatPercent(a.acceptanceRate), cdsRef: "C1–C2" },
         { label: "Applicants", value: formatNumber(a.applicants), cdsRef: "C1" },
         { label: "Admitted", value: formatNumber(a.admitted), cdsRef: "C1" },
         { label: "Enrolled first-year students", value: formatNumber(a.enrolledFirstYear), cdsRef: "C1" },
@@ -223,6 +307,29 @@ export function renderSectionBody(
           <SubBlock title="Overview">
             <DataTable rows={overview} />
           </SubBlock>
+
+          {a.applicants != null && a.admitted != null && (
+            <SubBlock title="Calculated metrics">
+              <CalculatedMetrics
+                items={[
+                  {
+                    label: "Acceptance rate",
+                    value: formatPercent(round1((a.admitted / a.applicants) * 100)),
+                    formula: "admitted ÷ applied",
+                  },
+                  ...(a.enrolledFirstYear != null && a.admitted
+                    ? [
+                        {
+                          label: "Yield",
+                          value: formatPercent(round1((a.enrolledFirstYear / a.admitted) * 100)),
+                          formula: "enrolled ÷ admitted",
+                        },
+                      ]
+                    : []),
+                ]}
+              />
+            </SubBlock>
+          )}
 
           {a.testScores.length > 0 && (
             <SubBlock title="Test scores (25th–75th percentile)">

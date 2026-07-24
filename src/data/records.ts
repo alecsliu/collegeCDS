@@ -4,7 +4,9 @@ import type {
   CdsRecord,
   ClassSizeRow,
   DegreeRow,
-  EthnicityRow,
+  EnrollMatrixRow,
+  GradRateGroup,
+  RaceRow,
   ScoreBandRow,
   TestScoreRange,
 } from "@/lib/types";
@@ -95,14 +97,18 @@ const SETTINGS: Record<string, string> = {
 const QUARTER = new Set(["stanford", "northwestern", "ucla", "dartmouth"]);
 const OPEN_CURRICULUM = new Set(["brown"]);
 
-const ETHNICITY: EthnicityRow[] = [
-  { group: "White", percent: 36 },
-  { group: "Asian", percent: 22 },
-  { group: "Hispanic or Latino", percent: 16 },
-  { group: "Black or African American", percent: 8 },
-  { group: "Two or more races", percent: 6 },
-  { group: "Nonresident (international)", percent: 9 },
-  { group: "Unknown", percent: 3 },
+// IPEDS racial/ethnic categories (shares sum to 100). Used for the F ethnicity
+// percentages and the B2 enrollment-by-race counts.
+const RACE = [
+  { group: "Nonresident (international)", pct: 9 },
+  { group: "Hispanic or Latino", pct: 16 },
+  { group: "Black or African American", pct: 8 },
+  { group: "White", pct: 34 },
+  { group: "American Indian or Alaska Native", pct: 1 },
+  { group: "Asian", pct: 22 },
+  { group: "Native Hawaiian or other Pacific Islander", pct: 1 },
+  { group: "Two or more races", pct: 6 },
+  { group: "Race / ethnicity unknown", pct: 3 },
 ];
 
 const DEGREE_DISTS: Record<string, DegreeRow[]> = {
@@ -360,6 +366,53 @@ function build(s: Seed): CdsRecord {
     { type: "Federal Pell grants", recipients: Math.round((s.ug * pick(s.slug, 23, 12, 26)) / 100), avgAmount: 5000 },
   ];
 
+  // B1 — enrollment matrix (full/part-time × gender). Splits are illustrative.
+  const w = women / 100;
+  const mkEnroll = (
+    label: string,
+    total: number,
+    ftFrac: number,
+    opts: { indent?: boolean; emphasize?: boolean } = {},
+  ): EnrollMatrixRow => {
+    const ft = Math.round(total * ftFrac);
+    const pt = total - ft;
+    const ftMen = Math.round(ft * (1 - w));
+    const ptMen = Math.round(pt * (1 - w));
+    return { label, ftMen, ftWomen: ft - ftMen, ptMen, ptWomen: pt - ptMen, ...opts };
+  };
+  const dsUg = Math.round(s.ug * 0.98);
+  const ugFtFrac = (100 - pctPart) / 100;
+  const enrollmentMatrix: EnrollMatrixRow[] = [
+    mkEnroll("Degree-seeking, first-time first-year", s.enr, 0.98, { indent: true }),
+    mkEnroll("All other degree-seeking undergraduates", dsUg - s.enr, ugFtFrac, { indent: true }),
+    mkEnroll("Total degree-seeking undergraduates", dsUg, ugFtFrac, { emphasize: true }),
+    mkEnroll("Non-degree undergraduates", s.ug - dsUg, 0.3, { indent: true }),
+    mkEnroll("Total undergraduates", s.ug, ugFtFrac, { emphasize: true }),
+    mkEnroll("Total graduate students", grad, 0.6, { emphasize: true }),
+  ];
+
+  // B2 — enrollment by racial/ethnic category (counts).
+  const raceEthnicity: RaceRow[] = [
+    ...RACE.map((r) => ({
+      group: r.group,
+      firstYear: Math.round((s.enr * r.pct) / 100),
+      undergrad: Math.round((s.ug * r.pct) / 100),
+    })),
+    { group: "Total", firstYear: s.enr, undergrad: s.ug },
+  ];
+
+  // B4–B21 — graduation-rate cohort with the Pell breakdown.
+  const gradGroup = (label: string, share: number, rate: number): GradRateGroup => {
+    const cohort = Math.round(s.enr * share);
+    return { label, cohort, completed: Math.round((cohort * rate) / 100), rate };
+  };
+  const gradRates: GradRateGroup[] = [
+    gradGroup("All students", 1, s.g6),
+    gradGroup("Pell Grant recipients", 0.2, clamp(s.g6 - 4, 0, 100)),
+    gradGroup("Federal loan, non-Pell", 0.15, clamp(s.g6 - 2, 0, 100)),
+    gradGroup("Neither Pell nor loan", 0.65, clamp(s.g6 + 1, 0, 100)),
+  ];
+
   return {
     slug: s.slug,
     year: s.year,
@@ -378,14 +431,11 @@ function build(s: Seed): CdsRecord {
       firstYearRetention: s.ret,
       sixYearGraduation: s.g6,
       fourYearGraduation: s.g4,
-      degreeSeekingUndergrad: Math.round(s.ug * 0.97),
-      menUndergrad: Math.round((s.ug * (100 - women)) / 100),
-      womenUndergrad: Math.round((s.ug * women) / 100),
-      fullTimeUndergrad: fullTimeUg,
-      partTimeUndergrad: s.ug - fullTimeUg,
-      nonDegreeUndergrad: Math.round(s.ug * 0.02),
-      graduateEnrollment: grad,
       fiveYearGraduation: clamp(s.g4 + Math.round((s.g6 - s.g4) * 0.7), s.g4, s.g6),
+      graduateEnrollment: grad,
+      enrollmentMatrix,
+      raceEthnicity,
+      gradRates,
       bachelorsAwarded: bachelors,
       mastersAwarded: Math.round(grad * 0.4),
       doctoratesAwarded: Math.round(grad * 0.08),
@@ -462,7 +512,7 @@ function build(s: Seed): CdsRecord {
         ? pick(s.slug, 3, 10, 24)
         : pick(s.slug, 3, 8, 18),
       pctLivingOnCampus: onCampus,
-      ethnicity: ETHNICITY,
+      ethnicity: RACE.map((r) => ({ group: r.group, percent: r.pct })),
       pctInState: isPrivate
         ? pick(s.slug, 16, 15, 40)
         : pick(s.slug, 16, 65, 88),
