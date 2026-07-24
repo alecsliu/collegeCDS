@@ -292,7 +292,7 @@ export const SECTIONS: SectionMeta[] = [
     key: "general",
     title: "General information",
     cdsRef: "Section A",
-    blurb: "Institution type, academic calendar, and campus setting.",
+    blurb: "Institutional control, coeducational status, and academic calendar.",
   },
   {
     key: "enrollment",

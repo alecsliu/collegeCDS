@@ -4,7 +4,7 @@ import { UNIVERSITIES } from "@/data/universities";
 import { getAllRecordParams } from "@/lib/data";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const staticRoutes = ["/", "/about"].map((path) => ({
+  const staticRoutes = ["/", "/how-it-works", "/about"].map((path) => ({
     url: `${SITE_URL}${path}`,
     changeFrequency: "yearly" as const,
     priority: path === "/" ? 1 : 0.6,

@@ -28,11 +28,16 @@ export default function SiteHeader() {
           </div>
         )}
 
-        <nav className={showSearch ? "shrink-0" : "ml-auto shrink-0"}>
+        <nav
+          className={`flex items-center gap-5 ${showSearch ? "shrink-0" : "ml-auto shrink-0"}`}
+        >
           <Link
-            href="/about"
+            href="/how-it-works"
             className="text-sm text-ink-2 hover:text-crimson"
           >
+            How it works
+          </Link>
+          <Link href="/about" className="text-sm text-ink-2 hover:text-crimson">
             About
           </Link>
         </nav>

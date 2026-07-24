@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { SECTIONS } from "@/lib/types";
 
 export const metadata: Metadata = {
   title: "About",
   description:
-    "What the Common Data Set is, how to read it, and where this site's data comes from.",
+    "What the Common Data Set is, why this project exists, and where its data comes from.",
 };
 
 export default function AboutPage() {
@@ -32,31 +31,17 @@ export default function AboutPage() {
           site parses those files and presents the figures on one clean,
           consistent page per university and year — no downloads required.
         </p>
-      </div>
-
-      <h2 className="mt-12 font-serif text-2xl font-semibold text-ink">
-        How to read a university page
-      </h2>
-      <p className="mt-3 text-ink-2">
-        The Common Data Set is organized into standardized sections, A through J.
-        Each university page presents them all, in that order, with the official
-        CDS reference shown alongside each plain-language label so you can trace
-        any figure back to the source form.
-      </p>
-      <ul className="mt-5 space-y-3">
-        {SECTIONS.map((s) => (
-          <li
-            key={s.key}
-            className="flex items-baseline justify-between gap-4 border-b border-line pb-3"
+        <p>
+          New here? The{" "}
+          <Link
+            href="/how-it-works"
+            className="font-medium text-crimson hover:text-crimson-dark"
           >
-            <div>
-              <span className="font-medium text-ink">{s.title}</span>
-              <span className="ml-2 text-sm text-ink-3">{s.cdsRef}</span>
-              <p className="text-sm text-ink-2">{s.blurb}</p>
-            </div>
-          </li>
-        ))}
-      </ul>
+            How it works
+          </Link>{" "}
+          page walks through how to read a university page.
+        </p>
+      </div>
 
       <h2 className="mt-12 font-serif text-2xl font-semibold text-ink">
         Sourcing

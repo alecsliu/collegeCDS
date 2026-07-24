@@ -140,13 +140,11 @@ export function renderSectionBody(
       const g = record.general;
       if (!g) return null;
       const rows: DataRow[] = [
-        { label: "Institutional control", value: formatText(g.institutionalControl), cdsRef: "A1" },
-        { label: "Classification", value: formatText(g.classification), cdsRef: "A2", tier: "full" },
-        { label: "Academic calendar", value: formatText(g.academicCalendar), cdsRef: "A1" },
-        { label: "Campus setting", value: formatText(g.campusSetting), cdsRef: "A1" },
-        { label: "Religious affiliation", value: g.religiousAffiliation ?? "None", cdsRef: "A1" },
-        { label: "Degrees offered", value: formatText(g.degreesOffered), cdsRef: "A5", tier: "full" },
-        { label: "Website", value: formatText(g.website), cdsRef: "A0" },
+        { label: "Institutional control", value: formatText(g.institutionalControl) },
+        { label: "Coeducational status", value: formatText(g.classification) },
+        { label: "Academic calendar", value: formatText(g.academicCalendar) },
+        { label: "Degrees offered", value: formatText(g.degreesOffered), tier: "full" },
+        { label: "Website", value: formatText(g.website) },
       ];
       return <DataTable rows={rows} />;
     }

@@ -33,9 +33,6 @@ export default function DataTable({ rows }: { rows: DataRow[] }) {
                 className="py-2.5 pr-4 text-left align-top font-normal text-ink-2"
               >
                 {row.label}
-                {row.cdsRef && (
-                  <span className="ml-1.5 text-xs text-ink-3">{row.cdsRef}</span>
-                )}
               </th>
               <td
                 className={`py-2.5 text-right align-top tabular-nums ${
