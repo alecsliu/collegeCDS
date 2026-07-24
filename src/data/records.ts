@@ -29,17 +29,27 @@ import { UNIVERSITIES } from "@/data/universities";
 
 const META = new Map(UNIVERSITIES.map((u) => [u.slug, u]));
 
+// The full CDS C7 factor list (6 academic + 12 nonacademic), with illustrative
+// weights for a selective holistic reader.
 const HOLISTIC_FACTORS: AdmissionFactor[] = [
   { factor: "Rigor of secondary school record", level: "Very important" },
+  { factor: "Class rank", level: "Considered" },
   { factor: "Academic GPA", level: "Very important" },
+  { factor: "Standardized test scores", level: "Considered" },
   { factor: "Application essay", level: "Very important" },
-  { factor: "Recommendations", level: "Important" },
+  { factor: "Recommendation(s)", level: "Important" },
+  { factor: "Interview", level: "Considered" },
   { factor: "Extracurricular activities", level: "Important" },
   { factor: "Talent / ability", level: "Important" },
   { factor: "Character / personal qualities", level: "Very important" },
-  { factor: "First-generation status", level: "Considered" },
-  { factor: "Standardized test scores", level: "Considered" },
-  { factor: "Interview", level: "Considered" },
+  { factor: "First generation", level: "Considered" },
+  { factor: "Alumni/ae relation", level: "Considered" },
+  { factor: "Geographical residence", level: "Considered" },
+  { factor: "State residency", level: "Not considered" },
+  { factor: "Religious affiliation / commitment", level: "Not considered" },
+  { factor: "Volunteer work", level: "Considered" },
+  { factor: "Work experience", level: "Considered" },
+  { factor: "Level of applicant’s interest", level: "Considered" },
 ];
 
 const CLASS_SIZES = (under20: number): ClassSizeRow[] => [
