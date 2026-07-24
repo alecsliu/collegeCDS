@@ -331,6 +331,51 @@ export function renderSectionBody(
             </SubBlock>
           )}
 
+          <SubBlock title="Applied, admitted & enrolled by gender" full>
+            <GridTable
+              firstCol="Gender"
+              columns={["Applied", "Admitted", "Enrolled"]}
+              rows={a.byGender.map((r) => ({
+                label: r.group,
+                emphasize: r.group === "Total",
+                values: [
+                  formatNumber(r.applied),
+                  formatNumber(r.admitted),
+                  formatNumber(r.enrolled),
+                ],
+              }))}
+            />
+          </SubBlock>
+
+          <SubBlock title="First-year enrollees by status" full>
+            <GridTable
+              firstCol="Gender"
+              columns={["Full-time", "Part-time"]}
+              rows={a.enrolledByStatus.map((r) => ({
+                label: r.group,
+                emphasize: r.group === "Total",
+                values: [formatNumber(r.fullTime), formatNumber(r.partTime)],
+              }))}
+            />
+          </SubBlock>
+
+          <SubBlock title="Applied, admitted & enrolled by residency" full>
+            <GridTable
+              firstCol=""
+              columns={["In-state", "Out-of-state", "International", "Unknown", "Total"]}
+              rows={a.byResidency.map((r) => ({
+                label: r.stage,
+                values: [
+                  formatNumber(r.inState),
+                  formatNumber(r.outState),
+                  formatNumber(r.international),
+                  formatNumber(r.unknown),
+                  formatNumber(r.total),
+                ],
+              }))}
+            />
+          </SubBlock>
+
           {a.testScores.length > 0 && (
             <SubBlock title="Test scores (25th–75th percentile)">
               <HeadedTable
@@ -429,7 +474,26 @@ export function renderSectionBody(
         { label: "Requires college transcript", value: formatText(t.requiresCollegeTranscript), cdsRef: "D4", tier: "full" },
         { label: "Requires good academic standing", value: formatText(t.requiresGoodStanding), cdsRef: "D4", tier: "full" },
       ];
-      return <DataTable rows={rows} />;
+      return (
+        <>
+          <DataTable rows={rows} />
+          <SubBlock title="Transfer applicants by gender" full>
+            <GridTable
+              firstCol="Gender"
+              columns={["Applied", "Admitted", "Enrolled"]}
+              rows={t.byGender.map((r) => ({
+                label: r.group,
+                emphasize: r.group === "Total",
+                values: [
+                  formatNumber(r.applied),
+                  formatNumber(r.admitted),
+                  formatNumber(r.enrolled),
+                ],
+              }))}
+            />
+          </SubBlock>
+        </>
+      );
     }
 
     case "offerings": {

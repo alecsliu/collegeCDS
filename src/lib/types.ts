@@ -108,6 +108,31 @@ export interface GpaBandRow {
   percent: number | null;
 }
 
+/** Applied/admitted/enrolled for one group (C1 / D2 gender rows). */
+export interface GenderStageRow {
+  group: string;
+  applied: number | null;
+  admitted: number | null;
+  enrolled: number | null;
+}
+
+/** Enrollees split by full/part-time for one group (C1). */
+export interface StatusGenderRow {
+  group: string;
+  fullTime: number | null;
+  partTime: number | null;
+}
+
+/** Applied/admitted/enrolled by residency (C1). */
+export interface ResidencyRow {
+  stage: string;
+  inState: number | null;
+  outState: number | null;
+  international: number | null;
+  unknown: number | null;
+  total: number | null;
+}
+
 /** CDS section C — First-time, first-year admission. */
 export interface AdmissionsSection {
   acceptanceRate: number | null;
@@ -124,6 +149,9 @@ export interface AdmissionsSection {
   waitlistAccepted: number | null;
   waitlistAdmitted: number | null;
   // full CDS
+  byGender: GenderStageRow[];
+  enrolledByStatus: StatusGenderRow[];
+  byResidency: ResidencyRow[];
   applicationFee: number | null;
   feeWaiverAvailable: string | null;
   satComposite25: number | null;
@@ -160,6 +188,7 @@ export interface TransferSection {
   acceptanceRate: number | null;
   minCollegeGpa: number | null;
   // full CDS
+  byGender: GenderStageRow[];
   termsAvailable: string | null;
   applicationDeadline: string | null;
   minCreditsToTransfer: number | null;

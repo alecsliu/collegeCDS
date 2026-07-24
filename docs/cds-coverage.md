@@ -30,7 +30,7 @@ verifiable. Grounded in the **CDS 2025–26** template. Status:
 ## C — First-year admission
 | Item | Status | Notes |
 |---|---|---|
-| C1 applied/admitted/enrolled | 🟡 | totals only — **by gender, by FT/PT status, and by residency (in-state/out-of-state/international/unknown) ⬜** |
+| C1 applied/admitted/enrolled | ✅ | totals + by gender, by FT/PT enrollee status, and by residency (in-state/out-of-state/international/unknown) |
 | C2 waitlist | 🟡 | counts shown — **"is it ranked?" + released to students/counselors ⬜** |
 | C3 HS completion requirement | ⬜ | |
 | C4 college-prep program required/recommended | ⬜ | |
@@ -53,7 +53,7 @@ verifiable. Grounded in the **CDS 2025–26** template. Status:
 | Item | Status | Notes |
 |---|---|---|
 | D1 accepts transfers / advanced standing | ✅ | |
-| D2 applied/admitted/enrolled | 🟡 | totals — **by gender ⬜** |
+| D2 applied/admitted/enrolled | ✅ | totals + by gender |
 | D3 terms | ✅ | |
 | D4 min credits vs. first-year | ✅ | |
 | D5 required items (transcripts/essay/test/good standing) | 🟡 | shown as yes/no |
@@ -112,7 +112,7 @@ verifiable. Grounded in the **CDS 2025–26** template. Status:
 | J1 degrees by CIP field (~34 categories) | 🟡 | ~16-category breakdown; full CIP-2020 list ⬜ |
 
 ## Priority roadmap (biggest gaps)
-1. **C1 / D2 matrices** — applied/admitted/enrolled by gender, FT/PT status, and residency (GridTable).
+1. ~~**C1 / D2 matrices** — by gender, FT/PT status, residency~~ ✅ done
 2. **C5** units required/recommended table.
 3. **C2** waitlist "ranked?" + released-to-counselors flags.
 4. **H1 / H2** full aid tables (need vs non-need; FT-first-year / FT-ug / <FT-ug columns).

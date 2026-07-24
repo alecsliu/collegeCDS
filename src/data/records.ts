@@ -5,9 +5,12 @@ import type {
   ClassSizeRow,
   DegreeRow,
   EnrollMatrixRow,
+  GenderStageRow,
   GradRateGroup,
   RaceRow,
+  ResidencyRow,
   ScoreBandRow,
+  StatusGenderRow,
   TestScoreRange,
 } from "@/lib/types";
 import { UNIVERSITIES } from "@/data/universities";
@@ -179,6 +182,14 @@ function pick(slug: string, salt: number, min: number, max: number): number {
 }
 const clamp = (n: number, lo: number, hi: number) =>
   Math.max(lo, Math.min(hi, n));
+
+/** Split a total into men/women/unknown using a women fraction `w` (0–1). */
+function genderSplit(total: number, w: number) {
+  const unknown = Math.round(total * 0.01);
+  const rest = total - unknown;
+  const men = Math.round(rest * (1 - w));
+  return { men, women: rest - men, unknown };
+}
 
 // ——— Full-CDS distribution templates (by selectivity tier) ———
 const SAT_BANDS = ["700–800", "600–699", "500–599", "400–499", "300–399", "200–299"];
@@ -422,6 +433,56 @@ function build(s: Seed): CdsRecord {
     gradGroup("Neither Pell nor loan", 0.65, clamp(s.g6 + 1, 0, 100)),
   ];
 
+  // C1 — applications by gender, enrollee status, and residency.
+  const gA = genderSplit(s.apps, w);
+  const gD = genderSplit(s.adm, w);
+  const gE = genderSplit(s.enr, w);
+  const byGender: GenderStageRow[] = [
+    { group: "Men", applied: gA.men, admitted: gD.men, enrolled: gE.men },
+    { group: "Women", applied: gA.women, admitted: gD.women, enrolled: gE.women },
+    { group: "Unknown", applied: gA.unknown, admitted: gD.unknown, enrolled: gE.unknown },
+    { group: "Total", applied: s.apps, admitted: s.adm, enrolled: s.enr },
+  ];
+  const ftPt = (n: number): [number, number] => {
+    const ft = Math.round(n * 0.98);
+    return [ft, n - ft];
+  };
+  const enrolledByStatus: StatusGenderRow[] = (
+    [
+      ["Men", gE.men],
+      ["Women", gE.women],
+      ["Unknown", gE.unknown],
+      ["Total", s.enr],
+    ] as [string, number][]
+  ).map(([group, n]) => ({ group, fullTime: ftPt(n)[0], partTime: ftPt(n)[1] }));
+
+  const pctOut = isPrivate ? pick(s.slug, 2, 60, 85) : pick(s.slug, 2, 12, 35);
+  const pctIntl = isPrivate ? pick(s.slug, 3, 10, 24) : pick(s.slug, 3, 8, 18);
+  const resSplit = (stage: string, T: number): ResidencyRow => {
+    const international = Math.round((T * pctIntl) / 100);
+    const unknown = Math.round(T * 0.02);
+    const domestic = T - international - unknown;
+    const outState = Math.round((domestic * pctOut) / 100);
+    return { stage, inState: domestic - outState, outState, international, unknown, total: T };
+  };
+  const byResidency: ResidencyRow[] = [
+    resSplit("Applied", s.apps),
+    resSplit("Admitted", s.adm),
+    resSplit("Enrolled", s.enr),
+  ];
+
+  // D2 — transfer applicants by gender.
+  const teEnr = Math.round(tAdm * 0.75);
+  const tgA = genderSplit(tApps, w);
+  const tgD = genderSplit(tAdm, w);
+  const tgE = genderSplit(teEnr, w);
+  const transferByGender: GenderStageRow[] = [
+    { group: "Men", applied: tgA.men, admitted: tgD.men, enrolled: tgE.men },
+    { group: "Women", applied: tgA.women, admitted: tgD.women, enrolled: tgE.women },
+    { group: "Unknown", applied: tgA.unknown, admitted: tgD.unknown, enrolled: tgE.unknown },
+    { group: "Total", applied: tApps, admitted: tAdm, enrolled: teEnr },
+  ];
+
   return {
     slug: s.slug,
     year: s.year,
@@ -464,6 +525,9 @@ function build(s: Seed): CdsRecord {
       waitlistOffered: s.wl[0],
       waitlistAccepted: s.wl[1],
       waitlistAdmitted: s.wl[2],
+      byGender,
+      enrolledByStatus,
+      byResidency,
       applicationFee: pick(s.slug, 7, 65, 90),
       feeWaiverAvailable: "Yes",
       satComposite25: s.sat ? s.sat.ebrw[0] + s.sat.math[0] : null,
@@ -497,6 +561,7 @@ function build(s: Seed): CdsRecord {
       enrolled: Math.round(tAdm * 0.75),
       acceptanceRate: tRate,
       minCollegeGpa: s.acc < 8 ? 3.5 : s.acc < 18 ? 3.3 : 3.0,
+      byGender: transferByGender,
       termsAvailable: "Fall and spring",
       applicationDeadline: "March 1",
       minCreditsToTransfer: 24,
@@ -514,12 +579,8 @@ function build(s: Seed): CdsRecord {
     studentLife: {
       pctWomen: women,
       pctMen: 100 - women,
-      pctOutOfState: isPrivate
-        ? pick(s.slug, 2, 60, 85)
-        : pick(s.slug, 2, 12, 35),
-      pctInternational: isPrivate
-        ? pick(s.slug, 3, 10, 24)
-        : pick(s.slug, 3, 8, 18),
+      pctOutOfState: pctOut,
+      pctInternational: pctIntl,
       pctLivingOnCampus: onCampus,
       ethnicity: RACE.map((r) => ({ group: r.group, percent: r.pct })),
       pctInState: isPrivate
